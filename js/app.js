@@ -26,6 +26,17 @@ function initializeApp() {
             sendChatMessage();
         }
     });
+    
+    // Initialize button state
+    updateGenerateButtonState();
+}
+
+// Update Generate Test Plan button state
+function updateGenerateButtonState() {
+    const generateBtn = document.querySelector('.btn-primary');
+    if (generateBtn) {
+        generateBtn.disabled = testCases.length > 0;
+    }
 }
 
 // Setup slider value updates
@@ -221,6 +232,9 @@ async function generateTestPlan() {
     // Reset button
     btn.disabled = false;
     btn.innerHTML = originalHTML;
+    
+    // Update button state (disable since we now have test cases)
+    updateGenerateButtonState();
 }
 
 // Generate mock test cases (simulates AI generation)
@@ -617,6 +631,9 @@ function newTestPlan() {
         </div>
     `;
     
+    // Update button state (enable since testCases is now empty)
+    updateGenerateButtonState();
+    
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -748,6 +765,29 @@ function deleteTestCase(testCaseId) {
     
     // Update display
     displayTestCases();
+}
+
+// Delete all test cases
+function deleteAllTestCases() {
+    if (testCases.length === 0) {
+        alert('No test cases to delete');
+        return;
+    }
+    
+    const numCases = testCases.length;
+    
+    if (!confirm(`Are you sure you want to delete ALL ${numCases} test cases?\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    // Clear the test cases array
+    testCases = [];
+    
+    // Update the display
+    displayTestCases();
+    
+    // Update Generate button state (enable it since testCases is now empty)
+    updateGenerateButtonState();
 }
 
 // Jira Import functionality
@@ -1072,6 +1112,9 @@ function loadSelectedPlan() {
     
     // Close modal
     closeLoadPlanModal();
+    
+    // Update button state (disable if test cases exist, enable if empty)
+    updateGenerateButtonState();
     
     // Show success message
     alert(`Successfully loaded test plan: ${plan.title}`);
