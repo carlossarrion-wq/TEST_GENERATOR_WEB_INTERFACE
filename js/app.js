@@ -1160,6 +1160,35 @@ function closeLoadPlanModal() {
     document.getElementById('load-plan-btn').disabled = true;
 }
 
+// Clear chat conversation
+function clearChatConversation() {
+    if (!confirm('Are you sure you want to clear the chat conversation?\n\nThis will reset the conversation to its initial state.')) {
+        return;
+    }
+    
+    // Reset chat to initial message
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = `
+        <div class="chat-message assistant">
+            <div class="message-avatar">AI</div>
+            <div class="message-content">
+                <p>Test plan generated successfully! You can now refine it by asking me to:</p>
+                <ul>
+                    <li>Add specific test cases for edge cases</li>
+                    <li>Include negative testing scenarios</li>
+                    <li>Add performance or security test cases</li>
+                    <li>Modify existing test cases</li>
+                    <li>Remove redundant test cases</li>
+                </ul>
+                <p>What would you like to adjust?</p>
+            </div>
+        </div>
+    `;
+    
+    // Clear the input field
+    document.getElementById('chat-input').value = '';
+}
+
 // Logout
 function logout() {
     sessionStorage.clear();
