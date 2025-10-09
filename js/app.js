@@ -150,6 +150,13 @@ function updateSliderPosition(valueElement, slider) {
     valueElement.style.left = `calc(${percent}% + (${8 - percent * 0.16}px))`;
 }
 
+// Generate unique ID for test plan
+function generateTestPlanId() {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `TP-${timestamp}-${random}`;
+}
+
 // Generate test plan
 async function generateTestPlan() {
     const title = document.getElementById('plan-title').value.trim();
@@ -169,6 +176,10 @@ async function generateTestPlan() {
         return;
     }
     
+    // Generate unique ID for the test plan
+    const planId = generateTestPlanId();
+    document.getElementById('plan-id').value = planId;
+    
     // Show loading state
     const btn = event.target;
     const originalHTML = btn.innerHTML;
@@ -182,6 +193,7 @@ async function generateTestPlan() {
     testCases = generateMockTestCases(requirements, minCases, maxCases);
     
     currentTestPlan = {
+        id: planId,
         title: title,
         requirements: requirements,
         coverage: coverage,
@@ -563,6 +575,8 @@ function discardTestPlan() {
 function newTestPlan() {
     // Reset form
     document.getElementById('plan-title').value = '';
+    document.getElementById('plan-id').value = '';
+    document.getElementById('plan-reference').value = '';
     document.getElementById('requirements').value = '';
     document.getElementById('coverage').value = 80;
     document.getElementById('coverage-value').textContent = '80%';
@@ -987,6 +1001,7 @@ function loadSelectedPlan() {
     
     // Populate form fields
     document.getElementById('plan-title').value = plan.title;
+    document.getElementById('plan-id').value = plan.id || '';
     document.getElementById('plan-reference').value = plan.reference || '';
     document.getElementById('requirements').value = plan.requirements;
     document.getElementById('coverage').value = plan.coverage;

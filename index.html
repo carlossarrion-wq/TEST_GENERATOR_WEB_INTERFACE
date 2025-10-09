@@ -53,11 +53,15 @@
             
             <div class="form-section">
                 <div class="form-row">
-                    <div class="form-group" style="flex: 1;">
+                    <div class="form-group" style="flex: 0 0 50%;">
                         <label for="plan-title">Test Plan Title</label>
                         <input type="text" id="plan-title" class="form-control" placeholder="e.g., User Authentication Test Plan">
                     </div>
-                    <div class="form-group" style="flex: 0 0 200px; padding-left: 1rem;">
+                    <div class="form-group" style="flex: 0 0 25%; padding-left: 1rem;">
+                        <label for="plan-id">ID</label>
+                        <input type="text" id="plan-id" class="form-control" placeholder="Auto-generated" readonly style="background-color: rgba(0, 0, 0, 0.05);">
+                    </div>
+                    <div class="form-group" style="flex: 0 0 25%; padding-left: 1rem;">
                         <label for="plan-reference">Reference</label>
                         <input type="text" id="plan-reference" class="form-control" placeholder="e.g., JIRA-123" readonly style="background-color: rgba(0, 0, 0, 0.05);">
                     </div>
