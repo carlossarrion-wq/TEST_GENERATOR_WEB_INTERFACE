@@ -955,7 +955,7 @@ label {
     position: absolute;
     top: 2.5rem;
     left: 0;
-    z-index: 10;
+    pointer-events: none;
     cursor: pointer;
 }
 
@@ -968,10 +968,16 @@ label {
     cursor: pointer;
     border-radius: 4px;
     border: 2px solid #319795;
+    pointer-events: all;
 }
 
 .dual-slider::-webkit-slider-thumb:hover {
     background: rgba(49, 151, 149, 0.5);
+}
+
+.dual-slider::-webkit-slider-thumb:active {
+    background: rgba(49, 151, 149, 0.7);
+    transform: scale(1.1);
 }
 
 .dual-slider::-moz-range-thumb {
@@ -981,18 +987,24 @@ label {
     cursor: pointer;
     border-radius: 4px;
     border: 2px solid #319795;
+    pointer-events: all;
 }
 
 .dual-slider::-moz-range-thumb:hover {
     background: rgba(49, 151, 149, 0.5);
 }
 
+.dual-slider::-moz-range-thumb:active {
+    background: rgba(49, 151, 149, 0.7);
+    transform: scale(1.1);
+}
+
 .dual-slider#min-cases {
-    z-index: 12;
+    z-index: 11;
 }
 
 .dual-slider#max-cases {
-    z-index: 11;
+    z-index: 12;
 }
 
 .dual-slider-track {
