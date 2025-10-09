@@ -1035,6 +1035,8 @@ label {
     flex-direction: column;
     gap: 1rem;
     margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
 }
 
 .jira-filters-row {
@@ -1071,6 +1073,8 @@ label {
     background: rgba(49, 151, 149, 0.05);
     border-radius: 8px;
     border-left: 4px solid #319795;
+    position: relative;
+    z-index: 1;
 }
 
 .jira-results-info span {
@@ -1086,6 +1090,8 @@ label {
     border-radius: 12px;
     padding: 0.5rem;
     background: rgba(249, 250, 251, 0.5);
+    position: relative;
+    z-index: 1;
 }
 
 .jira-issues-list::-webkit-scrollbar {
@@ -1147,6 +1153,8 @@ label {
     cursor: pointer;
     transition: all 0.3s ease;
     background: white;
+    position: relative;
+    z-index: 1;
 }
 
 .jira-issue-item:hover {
@@ -1154,6 +1162,7 @@ label {
     background: rgba(49, 151, 149, 0.05);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(49, 151, 149, 0.2);
+    z-index: 10001;
 }
 
 .jira-issue-item.selected {
