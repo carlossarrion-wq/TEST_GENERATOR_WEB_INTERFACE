@@ -1141,43 +1141,49 @@ function displayJiraIssues() {
 // Position tooltip using fixed positioning
 function positionTooltip(item, tooltip) {
     const rect = item.getBoundingClientRect();
+    
+    // First, make tooltip visible to get its dimensions
+    tooltip.style.opacity = '1';
+    tooltip.style.pointerEvents = 'none';
+    
+    // Get tooltip dimensions after it's rendered
     const tooltipRect = tooltip.getBoundingClientRect();
+    const tooltipWidth = tooltipRect.width;
+    const tooltipHeight = tooltipRect.height;
     
-    // Calculate position above the item
-    const left = rect.left + (rect.width / 2);
-    const top = rect.top - 16; // 16px above the item
+    // Calculate center position of the item
+    const itemCenterX = rect.left + (rect.width / 2);
+    const itemTop = rect.top;
     
-    // Set position
-    tooltip.style.left = left + 'px';
-    tooltip.style.top = top + 'px';
-    tooltip.style.transform = 'translateX(-50%) translateY(-100%)';
+    // Calculate tooltip position (centered above the item)
+    let tooltipLeft = itemCenterX - (tooltipWidth / 2);
+    let tooltipTop = itemTop - tooltipHeight - 16; // 16px gap above item
     
-    // Check if tooltip goes off screen and adjust if needed
-    const tooltipWidth = tooltipRect.width || 400; // Use actual width or max-width
+    // Check horizontal boundaries
     const viewportWidth = window.innerWidth;
+    const margin = 10;
     
-    // Adjust horizontal position if tooltip goes off screen
-    if (left - tooltipWidth / 2 < 10) {
-        // Too far left
-        tooltip.style.left = '10px';
-        tooltip.style.transform = 'translateY(-100%)';
-    } else if (left + tooltipWidth / 2 > viewportWidth - 10) {
-        // Too far right
-        tooltip.style.left = (viewportWidth - 10) + 'px';
-        tooltip.style.transform = 'translateX(-100%) translateY(-100%)';
+    if (tooltipLeft < margin) {
+        // Too far left - align to left edge with margin
+        tooltipLeft = margin;
+    } else if (tooltipLeft + tooltipWidth > viewportWidth - margin) {
+        // Too far right - align to right edge with margin
+        tooltipLeft = viewportWidth - tooltipWidth - margin;
     }
     
-    // Adjust vertical position if tooltip goes off top of screen
-    if (top - tooltipRect.height < 10) {
-        // Show below instead
-        tooltip.style.top = (rect.bottom + 16) + 'px';
-        tooltip.style.transform = tooltip.style.transform.replace('translateY(-100%)', 'translateY(0)');
-        
-        // Flip arrow direction (would need CSS adjustment)
+    // Check vertical boundaries
+    if (tooltipTop < margin) {
+        // Not enough space above - show below instead
+        tooltipTop = rect.bottom + 16;
         tooltip.classList.add('tooltip-below');
     } else {
         tooltip.classList.remove('tooltip-below');
     }
+    
+    // Apply final position
+    tooltip.style.left = tooltipLeft + 'px';
+    tooltip.style.top = tooltipTop + 'px';
+    tooltip.style.transform = 'none'; // Remove any transforms
 }
 
 // Select a Jira issue
