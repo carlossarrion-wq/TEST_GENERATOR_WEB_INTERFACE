@@ -988,11 +988,11 @@ label {
 }
 
 .dual-slider#min-cases {
-    z-index: 11;
+    z-index: 12;
 }
 
 .dual-slider#max-cases {
-    z-index: 12;
+    z-index: 11;
 }
 
 .dual-slider-track {
