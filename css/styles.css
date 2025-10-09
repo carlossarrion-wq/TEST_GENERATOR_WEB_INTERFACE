@@ -1115,7 +1115,7 @@ label {
 
 /* Test Type Cards */
 .test-type-card {
-    padding: 1.25rem;
+    padding: 1rem;
     border: 2px solid rgba(0, 0, 0, 0.1);
     border-radius: 16px;
     cursor: pointer;
@@ -1124,10 +1124,10 @@ label {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     text-align: center;
     background: white;
-    min-height: 120px;
+    min-height: 100px;
 }
 
 .test-type-card:hover {
