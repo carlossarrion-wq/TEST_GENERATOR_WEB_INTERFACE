@@ -819,18 +819,61 @@ async function openJiraImportModal() {
     
     modal.classList.add('show');
     
-    // Simulate fetching Jira issues (in real app, this would call Lambda/Jira API)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Generate mock Jira issues
-    allJiraIssues = generateMockJiraIssues();
-    filteredJiraIssues = [...allJiraIssues];
-    
-    // Populate assignee filter
-    populateAssigneeFilter();
-    
-    // Display first page of issues
-    loadMoreJiraIssues();
+    try {
+        // Call Lambda API to fetch Jira issues
+        const response = await fetch('https://2xlh113423.execute-api.eu-west-1.amazonaws.com/dev/jira/import', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                projectKey: 'PDDSE2',
+                maxResults: 100
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to fetch Jira issues');
+        }
+        
+        // Transform Lambda response to match our format
+        allJiraIssues = data.issues.map(issue => ({
+            key: issue.key,
+            type: issue.issueType ? issue.issueType.toLowerCase() : 'task',
+            summary: issue.summary,
+            description: issue.description || 'No description provided',
+            status: issue.status,
+            priority: issue.priority,
+            assignee: issue.assignee ? (issue.assignee.displayName || issue.assignee) : 'Unassigned'
+        }));
+        
+        filteredJiraIssues = [...allJiraIssues];
+        
+        // Populate assignee filter
+        populateAssigneeFilter();
+        
+        // Display first page of issues
+        loadMoreJiraIssues();
+        
+    } catch (error) {
+        console.error('Error fetching Jira issues:', error);
+        issuesList.innerHTML = `
+            <div class="jira-empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <h4>Error loading Jira issues</h4>
+                <p>${error.message}</p>
+                <button class="btn-primary" onclick="openJiraImportModal()" style="margin-top: 1rem;">Retry</button>
+            </div>
+        `;
+    }
 }
 
 // Generate comprehensive mock Jira issues
@@ -1095,22 +1138,35 @@ function displayJiraIssues() {
     issuesList.innerHTML = displayedJiraIssues.map(issue => {
         const statusClass = issue.status.toLowerCase().replace(/\s+/g, '-');
         const priorityClass = issue.priority.toLowerCase();
-        const assigneeInitials = issue.assignee === 'Unassigned' ? 'U' : issue.assignee.split(' ').map(n => n[0]).join('');
+        
+        // Handle assignee initials safely
+        let assigneeInitials = 'U';
+        if (issue.assignee && issue.assignee !== 'Unassigned') {
+            const nameParts = issue.assignee.split(' ').filter(part => part.length > 0);
+            assigneeInitials = nameParts.map(n => n[0].toUpperCase()).join('');
+        }
+        
+        // Escape HTML in description to prevent XSS
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
         
         return `
             <div class="jira-issue-item" onclick="selectJiraIssue('${issue.key}')">
                 <div class="jira-issue-header">
-                    <span class="jira-issue-key">${issue.key}</span>
-                    <span class="jira-issue-type ${issue.type}">${issue.type}</span>
+                    <span class="jira-issue-key">${escapeHtml(issue.key)}</span>
+                    <span class="jira-issue-type ${issue.type}">${escapeHtml(issue.type)}</span>
                 </div>
-                <div class="jira-issue-summary">${issue.summary}</div>
-                <div class="jira-issue-description">${issue.description}</div>
+                <div class="jira-issue-summary">${escapeHtml(issue.summary)}</div>
+                <div class="jira-issue-description">${escapeHtml(issue.description)}</div>
                 <div class="jira-issue-meta">
-                    <span class="jira-issue-status ${statusClass}">${issue.status}</span>
-                    <span class="jira-issue-priority ${priorityClass}">${issue.priority}</span>
+                    <span class="jira-issue-status ${statusClass}">${escapeHtml(issue.status)}</span>
+                    <span class="jira-issue-priority ${priorityClass}">${escapeHtml(issue.priority)}</span>
                     <div class="jira-issue-assignee">
                         <div class="jira-issue-avatar">${assigneeInitials}</div>
-                        <span>${issue.assignee}</span>
+                        <span>${escapeHtml(issue.assignee)}</span>
                     </div>
                 </div>
             </div>
