@@ -1099,10 +1099,6 @@ function displayJiraIssues() {
         
         return `
             <div class="jira-issue-item" onclick="selectJiraIssue('${issue.key}')">
-                <div class="jira-issue-tooltip">
-                    <div class="jira-issue-tooltip-title">${issue.key}: ${issue.summary}</div>
-                    <div class="jira-issue-tooltip-description">${issue.description}</div>
-                </div>
                 <div class="jira-issue-header">
                     <span class="jira-issue-key">${issue.key}</span>
                     <span class="jira-issue-type ${issue.type}">${issue.type}</span>
@@ -1120,70 +1116,6 @@ function displayJiraIssues() {
             </div>
         `;
     }).join('');
-    
-    // Add event listeners for tooltip positioning
-    setTimeout(() => {
-        const issueItems = issuesList.querySelectorAll('.jira-issue-item');
-        issueItems.forEach(item => {
-            const tooltip = item.querySelector('.jira-issue-tooltip');
-            
-            item.addEventListener('mouseenter', function() {
-                positionTooltip(item, tooltip);
-            });
-            
-            item.addEventListener('mousemove', function() {
-                positionTooltip(item, tooltip);
-            });
-        });
-    }, 0);
-}
-
-// Position tooltip using fixed positioning
-function positionTooltip(item, tooltip) {
-    const rect = item.getBoundingClientRect();
-    
-    // First, make tooltip visible to get its dimensions
-    tooltip.style.opacity = '1';
-    tooltip.style.pointerEvents = 'none';
-    
-    // Get tooltip dimensions after it's rendered
-    const tooltipRect = tooltip.getBoundingClientRect();
-    const tooltipWidth = tooltipRect.width;
-    const tooltipHeight = tooltipRect.height;
-    
-    // Calculate center position of the item
-    const itemCenterX = rect.left + (rect.width / 2);
-    const itemTop = rect.top;
-    
-    // Calculate tooltip position (centered above the item)
-    let tooltipLeft = itemCenterX - (tooltipWidth / 2);
-    let tooltipTop = itemTop - tooltipHeight - 16; // 16px gap above item
-    
-    // Check horizontal boundaries
-    const viewportWidth = window.innerWidth;
-    const margin = 10;
-    
-    if (tooltipLeft < margin) {
-        // Too far left - align to left edge with margin
-        tooltipLeft = margin;
-    } else if (tooltipLeft + tooltipWidth > viewportWidth - margin) {
-        // Too far right - align to right edge with margin
-        tooltipLeft = viewportWidth - tooltipWidth - margin;
-    }
-    
-    // Check vertical boundaries
-    if (tooltipTop < margin) {
-        // Not enough space above - show below instead
-        tooltipTop = rect.bottom + 16;
-        tooltip.classList.add('tooltip-below');
-    } else {
-        tooltip.classList.remove('tooltip-below');
-    }
-    
-    // Apply final position
-    tooltip.style.left = tooltipLeft + 'px';
-    tooltip.style.top = tooltipTop + 'px';
-    tooltip.style.transform = 'none'; // Remove any transforms
 }
 
 // Select a Jira issue

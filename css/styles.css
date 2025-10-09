@@ -1309,69 +1309,6 @@ label {
     color: #7c3aed;
 }
 
-/* Tooltip for Jira Issues */
-.jira-issue-item {
-    position: relative;
-}
-
-.jira-issue-tooltip {
-    position: fixed;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    padding: 1rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    max-width: 400px;
-    width: max-content;
-    z-index: 10000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-}
-
-.jira-issue-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 8px solid transparent;
-    border-top-color: rgba(0, 0, 0, 0.95);
-}
-
-.jira-issue-item:hover .jira-issue-tooltip {
-    opacity: 1;
-}
-
-.jira-issue-tooltip-title {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #BED9DA;
-}
-
-.jira-issue-tooltip-description {
-    color: #e2e8f0;
-    white-space: pre-wrap;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.jira-issue-tooltip-description::-webkit-scrollbar {
-    width: 4px;
-}
-
-.jira-issue-tooltip-description::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-}
-
-.jira-issue-tooltip-description::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
-}
 
 /* Empty State */
 .jira-empty-state {
