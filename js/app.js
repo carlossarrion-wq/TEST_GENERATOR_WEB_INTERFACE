@@ -192,9 +192,13 @@ async function generateTestPlan() {
     // Generate mock test cases
     testCases = generateMockTestCases(requirements, minCases, maxCases);
     
+    // Get reference if it exists
+    const reference = document.getElementById('plan-reference').value.trim();
+    
     currentTestPlan = {
         id: planId,
         title: title,
+        reference: reference || '',
         requirements: requirements,
         coverage: coverage,
         minCases: minCases,
@@ -744,9 +748,6 @@ function deleteTestCase(testCaseId) {
     
     // Update display
     displayTestCases();
-    
-    // Show success message
-    alert('Test case deleted successfully!');
 }
 
 // Jira Import functionality
@@ -945,6 +946,15 @@ function openLoadPlanModal() {
             const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
             const numTestCases = plan.testCases ? plan.testCases.length : 0;
             
+            // Build ID and Reference display
+            let idReferenceText = '';
+            if (plan.id) {
+                idReferenceText = `ID: ${plan.id}`;
+                if (plan.reference) {
+                    idReferenceText += ` | Reference: ${plan.reference}`;
+                }
+            }
+            
             return `
                 <div class="jira-issue-item" onclick="selectSavedPlan(${index})" style="position: relative;">
                     <button class="btn-icon btn-icon-delete" onclick="event.stopPropagation(); deleteSavedPlan(${index})" title="Delete Plan" style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;">
@@ -956,6 +966,7 @@ function openLoadPlanModal() {
                         <span class="jira-issue-key">${plan.title}</span>
                         <span class="jira-issue-type story">${numTestCases} test cases</span>
                     </div>
+                    ${idReferenceText ? `<div class="jira-issue-summary" style="font-weight: 500; color: #319795; margin-bottom: 0.25rem;">${idReferenceText}</div>` : ''}
                     <div class="jira-issue-summary">Coverage: ${plan.coverage}% | Test Cases: ${plan.minCases}-${plan.maxCases}</div>
                     <div class="jira-issue-description" style="font-size: 0.75rem; color: #a0aec0;">Saved: ${formattedDate}</div>
                 </div>
@@ -1094,9 +1105,6 @@ function deleteSavedPlan(planIndex) {
     
     // Refresh the modal display
     openLoadPlanModal();
-    
-    // Show success message
-    alert('Test plan deleted successfully!');
 }
 
 // Close Load Plan Modal

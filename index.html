@@ -52,18 +52,18 @@
             </div>
             
             <div class="form-section">
-                <div class="form-row">
-                    <div class="form-group" style="flex: 0 0 50%;">
-                        <label for="plan-title">Test Plan Title</label>
-                        <input type="text" id="plan-title" class="form-control" placeholder="e.g., User Authentication Test Plan">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 2rem; flex: 1; min-width: 0;">
+                        <label for="plan-title" style="min-width: 200px; flex-shrink: 0;">Test Plan Title</label>
+                        <input type="text" id="plan-title" class="form-control" placeholder="e.g., User Authentication Test Plan" style="flex: 1;">
                     </div>
-                    <div class="form-group" style="flex: 0 0 25%; padding-left: 1rem;">
-                        <label for="plan-id">ID</label>
-                        <input type="text" id="plan-id" class="form-control" placeholder="Auto-generated" readonly style="background-color: rgba(0, 0, 0, 0.05);">
+                    <div style="display: flex; align-items: center; gap: 1rem; width: 280px; min-width: 280px;">
+                        <label for="plan-id" style="min-width: 30px; flex-shrink: 0;">ID</label>
+                        <input type="text" id="plan-id" class="form-control" placeholder="Auto-generated" readonly style="background-color: rgba(0, 0, 0, 0.05); font-size: 0.85rem; flex: 1;">
                     </div>
-                    <div class="form-group" style="flex: 0 0 25%; padding-left: 1rem;">
-                        <label for="plan-reference">Reference</label>
-                        <input type="text" id="plan-reference" class="form-control" placeholder="e.g., JIRA-123" readonly style="background-color: rgba(0, 0, 0, 0.05);">
+                    <div style="display: flex; align-items: center; gap: 1rem; width: 250px; min-width: 250px;">
+                        <label for="plan-reference" style="min-width: 80px; flex-shrink: 0;">Reference</label>
+                        <input type="text" id="plan-reference" class="form-control" placeholder="e.g., JIRA-123" readonly style="background-color: rgba(0, 0, 0, 0.05); font-size: 0.85rem; flex: 1;">
                     </div>
                 </div>
 
@@ -117,7 +117,7 @@ Example:
                 <!-- Row 2: Test type cards in horizontal row -->
                 <div class="form-group">
                     <label for="test-types">Test Plan Type</label>
-                    <div id="test-types-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 0.5rem;">
+                    <div id="test-types-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-top: 0.5rem;">
                         <div class="test-type-card active" data-type="unit" onclick="selectTestType('unit')">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 32px; height: 32px;">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
@@ -141,6 +141,12 @@ Example:
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                             </svg>
                             <span>Performance</span>
+                        </div>
+                        <div class="test-type-card" data-type="regression" onclick="selectTestType('regression')">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 32px; height: 32px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                            <span>Regression</span>
                         </div>
                     </div>
                     <input type="hidden" id="selected-test-type" value="unit">
