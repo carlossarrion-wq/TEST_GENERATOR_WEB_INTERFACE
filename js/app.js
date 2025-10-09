@@ -30,20 +30,68 @@ function initializeApp() {
 
 // Setup slider value updates
 function setupSliders() {
+    // Coverage slider setup with segments
     const coverageSlider = document.getElementById('coverage');
     const coverageValue = document.getElementById('coverage-value');
+    const coverageContainer = coverageSlider.closest('.slider-container');
     
-    coverageSlider.addEventListener('input', function() {
-        coverageValue.textContent = this.value + '%';
-        updateSliderPosition(coverageValue, this);
-    });
+    // Create segments container for coverage slider
+    const coverageSegmentsContainer = document.createElement('div');
+    coverageSegmentsContainer.className = 'slider-track-segments';
     
-    // Dual slider setup - First slider (Number of Test Cases)
+    // Create 10 segments for coverage (0-100% in steps of 10)
+    for (let i = 0; i < 10; i++) {
+        const segment = document.createElement('div');
+        segment.className = 'slider-segment';
+        segment.dataset.segmentIndex = i;
+        coverageSegmentsContainer.appendChild(segment);
+    }
+    
+    // Insert segments before the slider
+    coverageSlider.parentNode.insertBefore(coverageSegmentsContainer, coverageSlider);
+    
+    // Update coverage slider segments
+    function updateCoverageSegments() {
+        const value = parseInt(coverageSlider.value);
+        const activeSegments = Math.floor(value / 10);
+        
+        coverageValue.textContent = value + '%';
+        
+        // Update segment states
+        const segments = coverageSegmentsContainer.querySelectorAll('.slider-segment');
+        segments.forEach((segment, index) => {
+            if (index < activeSegments) {
+                segment.classList.add('active');
+            } else {
+                segment.classList.remove('active');
+            }
+        });
+    }
+    
+    coverageSlider.addEventListener('input', updateCoverageSegments);
+    updateCoverageSegments(); // Initialize
+    
+    // Dual slider setup - Number of Test Cases with segments
     const minCasesSlider = document.getElementById('min-cases');
     const maxCasesSlider = document.getElementById('max-cases');
     const minCasesValue = document.getElementById('min-cases-value');
     const maxCasesValue = document.getElementById('max-cases-value');
-    const sliderRange = document.getElementById('slider-range');
+    const dualSliderContainer = minCasesSlider.closest('.dual-slider-container');
+    
+    // Create segments container for dual slider
+    const dualSegmentsContainer = document.createElement('div');
+    dualSegmentsContainer.className = 'dual-slider-track-segments';
+    
+    // Create 20 segments for test cases (1-20)
+    for (let i = 0; i < 20; i++) {
+        const segment = document.createElement('div');
+        segment.className = 'dual-slider-segment';
+        segment.dataset.segmentIndex = i;
+        dualSegmentsContainer.appendChild(segment);
+    }
+    
+    // Insert segments before the first slider
+    minCasesSlider.parentNode.insertBefore(dualSegmentsContainer, minCasesSlider);
     
     function updateDualSlider() {
         const min = parseInt(minCasesSlider.value);
@@ -60,17 +108,24 @@ function setupSliders() {
         minCasesValue.textContent = min;
         maxCasesValue.textContent = max;
         
-        // Calculate percentages
+        // Calculate percentages for value badges
         const minPercent = ((min - 1) / (20 - 1)) * 100;
         const maxPercent = ((max - 1) / (20 - 1)) * 100;
-        
-        // Update range bar
-        sliderRange.style.left = minPercent + '%';
-        sliderRange.style.width = (maxPercent - minPercent) + '%';
         
         // Update value positions
         minCasesValue.style.left = minPercent + '%';
         maxCasesValue.style.left = maxPercent + '%';
+        
+        // Update segment states (segments are 0-indexed, values are 1-indexed)
+        const segments = dualSegmentsContainer.querySelectorAll('.dual-slider-segment');
+        segments.forEach((segment, index) => {
+            const segmentValue = index + 1; // Convert to 1-indexed
+            if (segmentValue >= min && segmentValue <= max) {
+                segment.classList.add('active');
+            } else {
+                segment.classList.remove('active');
+            }
+        });
     }
     
     minCasesSlider.addEventListener('input', updateDualSlider);
