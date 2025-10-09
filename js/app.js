@@ -793,6 +793,10 @@ function deleteAllTestCases() {
 // Jira Import functionality
 let selectedJiraIssue = null;
 let allJiraIssues = [];
+let filteredJiraIssues = [];
+let displayedJiraIssues = [];
+let currentJiraPage = 0;
+const ISSUES_PER_PAGE = 20;
 
 // Open Jira Import Modal
 async function openJiraImportModal() {
@@ -802,102 +806,320 @@ async function openJiraImportModal() {
     // Reset filters
     document.getElementById('jira-search').value = '';
     document.getElementById('jira-type-filter').value = '';
+    document.getElementById('jira-status-filter').value = '';
+    document.getElementById('jira-priority-filter').value = '';
+    document.getElementById('jira-assignee-filter').value = '';
+    
+    // Reset pagination
+    currentJiraPage = 0;
+    displayedJiraIssues = [];
     
     // Show loading
-    issuesList.innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="loading-spinner"></div><p style="margin-top: 1rem; color: #718096;">Loading Jira issues...</p></div>';
+    issuesList.innerHTML = '<div class="jira-loading"><div class="loading-spinner"></div><p style="margin-top: 1rem;">Loading Jira issues...</p></div>';
     
     modal.classList.add('show');
     
-    // Simulate fetching Jira issues (in real app, this would call Jira API)
+    // Simulate fetching Jira issues (in real app, this would call Lambda/Jira API)
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Generate mock Jira issues
     allJiraIssues = generateMockJiraIssues();
+    filteredJiraIssues = [...allJiraIssues];
     
-    // Display issues
-    displayJiraIssues(allJiraIssues);
+    // Populate assignee filter
+    populateAssigneeFilter();
+    
+    // Display first page of issues
+    loadMoreJiraIssues();
 }
 
-// Generate mock Jira issues
+// Generate comprehensive mock Jira issues
 function generateMockJiraIssues() {
+    const assignees = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Williams', 'Unassigned'];
+    const statuses = ['To Do', 'In Progress', 'Done', 'Blocked'];
+    const priorities = ['High', 'Medium', 'Low'];
+    
     return [
         {
             key: 'PROJ-1234',
             type: 'story',
             summary: 'Implement user authentication system',
-            description: 'As a user, I want to be able to log in securely so that I can access my account.\n\nAcceptance Criteria:\n- Users can log in with email and password\n- System validates email format\n- Password must be at least 8 characters\n- Failed login attempts are tracked\n- Account locks after 5 failed attempts'
+            description: 'As a user, I want to be able to log in securely so that I can access my account.\n\nAcceptance Criteria:\n- Users can log in with email and password\n- System validates email format\n- Password must be at least 8 characters\n- Failed login attempts are tracked\n- Account locks after 5 failed attempts',
+            status: 'In Progress',
+            priority: 'High',
+            assignee: 'John Doe'
         },
         {
             key: 'PROJ-1235',
             type: 'bug',
             summary: 'Login form validation not working correctly',
-            description: 'The login form is not properly validating email addresses. Users can submit invalid email formats.\n\nSteps to reproduce:\n1. Navigate to login page\n2. Enter invalid email (e.g., "test@")\n3. Click submit\n4. Form submits without validation error'
+            description: 'The login form is not properly validating email addresses. Users can submit invalid email formats.\n\nSteps to reproduce:\n1. Navigate to login page\n2. Enter invalid email (e.g., "test@")\n3. Click submit\n4. Form submits without validation error\n\nExpected: Validation error should be displayed\nActual: Form submits successfully',
+            status: 'To Do',
+            priority: 'High',
+            assignee: 'Jane Smith'
         },
         {
             key: 'PROJ-1236',
             type: 'task',
             summary: 'Add password reset functionality',
-            description: 'Implement password reset feature that allows users to reset their password via email.\n\nRequirements:\n- User can request password reset\n- System sends reset link via email\n- Reset link expires after 24 hours\n- User can set new password using the link'
+            description: 'Implement password reset feature that allows users to reset their password via email.\n\nRequirements:\n- User can request password reset\n- System sends reset link via email\n- Reset link expires after 24 hours\n- User can set new password using the link\n- Old password is invalidated after reset',
+            status: 'To Do',
+            priority: 'Medium',
+            assignee: 'Mike Johnson'
         },
         {
             key: 'PROJ-1237',
             type: 'story',
             summary: 'Implement two-factor authentication',
-            description: 'As a security-conscious user, I want to enable two-factor authentication so that my account is more secure.\n\nAcceptance Criteria:\n- Users can enable 2FA in settings\n- Support for authenticator apps (Google Authenticator, Authy)\n- Backup codes provided during setup\n- Option to disable 2FA'
+            description: 'As a security-conscious user, I want to enable two-factor authentication so that my account is more secure.\n\nAcceptance Criteria:\n- Users can enable 2FA in settings\n- Support for authenticator apps (Google Authenticator, Authy)\n- Backup codes provided during setup\n- Option to disable 2FA\n- 2FA required for sensitive operations',
+            status: 'In Progress',
+            priority: 'High',
+            assignee: 'Sarah Williams'
         },
         {
             key: 'PROJ-1238',
             type: 'task',
             summary: 'Update user profile management',
-            description: 'Allow users to update their profile information including name, email, and profile picture.\n\nRequirements:\n- Form to edit profile information\n- Email change requires verification\n- Profile picture upload with size limits\n- Changes are saved immediately'
+            description: 'Allow users to update their profile information including name, email, and profile picture.\n\nRequirements:\n- Form to edit profile information\n- Email change requires verification\n- Profile picture upload with size limits (max 5MB)\n- Changes are saved immediately\n- Audit log for profile changes',
+            status: 'Done',
+            priority: 'Low',
+            assignee: 'John Doe'
+        },
+        {
+            key: 'PROJ-1239',
+            type: 'epic',
+            summary: 'User Management System Overhaul',
+            description: 'Complete redesign of the user management system to improve security, usability, and scalability.\n\nScope:\n- Authentication improvements\n- Profile management\n- Role-based access control\n- Audit logging\n- User activity tracking',
+            status: 'In Progress',
+            priority: 'High',
+            assignee: 'Unassigned'
+        },
+        {
+            key: 'PROJ-1240',
+            type: 'bug',
+            summary: 'Session timeout not working properly',
+            description: 'Users are not being logged out after the configured session timeout period.\n\nSteps to reproduce:\n1. Log in to the application\n2. Wait for session timeout period (30 minutes)\n3. Try to perform an action\n\nExpected: User should be logged out\nActual: User session remains active',
+            status: 'Blocked',
+            priority: 'High',
+            assignee: 'Jane Smith'
+        },
+        {
+            key: 'PROJ-1241',
+            type: 'story',
+            summary: 'Add social media login options',
+            description: 'As a user, I want to log in using my social media accounts so that I don\'t have to remember another password.\n\nAcceptance Criteria:\n- Support Google OAuth\n- Support Facebook login\n- Support GitHub login\n- Link social accounts to existing accounts\n- Unlink social accounts option',
+            status: 'To Do',
+            priority: 'Medium',
+            assignee: 'Mike Johnson'
+        },
+        {
+            key: 'PROJ-1242',
+            type: 'task',
+            summary: 'Implement email verification for new users',
+            description: 'Add email verification step during user registration.\n\nRequirements:\n- Send verification email upon registration\n- Verification link expires after 48 hours\n- Resend verification email option\n- Account activation upon verification\n- Clear error messages for expired links',
+            status: 'In Progress',
+            priority: 'Medium',
+            assignee: 'Sarah Williams'
+        },
+        {
+            key: 'PROJ-1243',
+            type: 'bug',
+            summary: 'Password strength indicator not displaying',
+            description: 'The password strength indicator on the registration form is not showing up.\n\nSteps to reproduce:\n1. Navigate to registration page\n2. Start typing in password field\n3. Observe password strength indicator\n\nExpected: Indicator should show password strength\nActual: No indicator is displayed',
+            status: 'To Do',
+            priority: 'Low',
+            assignee: 'Unassigned'
+        },
+        {
+            key: 'PROJ-1244',
+            type: 'story',
+            summary: 'Implement role-based access control',
+            description: 'As an administrator, I want to assign different roles to users so that I can control access to features.\n\nAcceptance Criteria:\n- Define user roles (Admin, Manager, User)\n- Assign permissions to roles\n- Users can have multiple roles\n- Role changes take effect immediately\n- Audit log for role changes',
+            status: 'To Do',
+            priority: 'High',
+            assignee: 'John Doe'
+        },
+        {
+            key: 'PROJ-1245',
+            type: 'task',
+            summary: 'Add user activity logging',
+            description: 'Implement comprehensive logging of user activities for security and audit purposes.\n\nRequirements:\n- Log all login attempts\n- Log profile changes\n- Log permission changes\n- Log data access\n- Retention policy for logs (90 days)',
+            status: 'Done',
+            priority: 'Medium',
+            assignee: 'Jane Smith'
+        },
+        {
+            key: 'PROJ-1246',
+            type: 'bug',
+            summary: 'Remember me checkbox not persisting',
+            description: 'The "Remember me" checkbox on login form is not keeping users logged in.\n\nSteps to reproduce:\n1. Check "Remember me" checkbox\n2. Log in successfully\n3. Close browser\n4. Reopen browser and navigate to site\n\nExpected: User should still be logged in\nActual: User has to log in again',
+            status: 'In Progress',
+            priority: 'Medium',
+            assignee: 'Mike Johnson'
+        },
+        {
+            key: 'PROJ-1247',
+            type: 'story',
+            summary: 'Add account deletion functionality',
+            description: 'As a user, I want to be able to delete my account so that my data is removed from the system.\n\nAcceptance Criteria:\n- User can request account deletion\n- Confirmation email sent before deletion\n- Grace period of 30 days before permanent deletion\n- All user data is removed\n- Compliance with GDPR requirements',
+            status: 'To Do',
+            priority: 'Low',
+            assignee: 'Sarah Williams'
+        },
+        {
+            key: 'PROJ-1248',
+            type: 'task',
+            summary: 'Implement password complexity requirements',
+            description: 'Add configurable password complexity requirements.\n\nRequirements:\n- Minimum length (8-20 characters)\n- Require uppercase letters\n- Require lowercase letters\n- Require numbers\n- Require special characters\n- Password history (prevent reuse of last 5 passwords)',
+            status: 'Done',
+            priority: 'High',
+            assignee: 'John Doe'
         }
     ];
 }
 
-// Filter Jira issues based on search and type
+// Populate assignee filter dropdown
+function populateAssigneeFilter() {
+    const assigneeFilter = document.getElementById('jira-assignee-filter');
+    const uniqueAssignees = [...new Set(allJiraIssues.map(issue => issue.assignee))].sort();
+    
+    // Clear existing options except "All Assignees"
+    assigneeFilter.innerHTML = '<option value="">All Assignees</option>';
+    
+    // Add unique assignees
+    uniqueAssignees.forEach(assignee => {
+        const option = document.createElement('option');
+        option.value = assignee;
+        option.textContent = assignee;
+        assigneeFilter.appendChild(option);
+    });
+}
+
+// Filter Jira issues based on all filters
 function filterJiraIssues() {
     const searchText = document.getElementById('jira-search').value.toLowerCase();
     const typeFilter = document.getElementById('jira-type-filter').value.toLowerCase();
+    const statusFilter = document.getElementById('jira-status-filter').value;
+    const priorityFilter = document.getElementById('jira-priority-filter').value;
+    const assigneeFilter = document.getElementById('jira-assignee-filter').value;
     
-    let filteredIssues = allJiraIssues;
+    filteredJiraIssues = allJiraIssues.filter(issue => {
+        // Filter by type
+        if (typeFilter && issue.type !== typeFilter) return false;
+        
+        // Filter by status
+        if (statusFilter && issue.status !== statusFilter) return false;
+        
+        // Filter by priority
+        if (priorityFilter && issue.priority !== priorityFilter) return false;
+        
+        // Filter by assignee
+        if (assigneeFilter && issue.assignee !== assigneeFilter) return false;
+        
+        // Filter by search text (ID, title, or description)
+        if (searchText) {
+            const matchesSearch = 
+                issue.key.toLowerCase().includes(searchText) ||
+                issue.summary.toLowerCase().includes(searchText) ||
+                issue.description.toLowerCase().includes(searchText);
+            if (!matchesSearch) return false;
+        }
+        
+        return true;
+    });
     
-    // Filter by type
-    if (typeFilter) {
-        filteredIssues = filteredIssues.filter(issue => issue.type === typeFilter);
+    // Reset pagination and display
+    currentJiraPage = 0;
+    displayedJiraIssues = [];
+    loadMoreJiraIssues();
+}
+
+// Clear all Jira filters
+function clearJiraFilters() {
+    document.getElementById('jira-search').value = '';
+    document.getElementById('jira-type-filter').value = '';
+    document.getElementById('jira-status-filter').value = '';
+    document.getElementById('jira-priority-filter').value = '';
+    document.getElementById('jira-assignee-filter').value = '';
+    
+    filterJiraIssues();
+}
+
+// Load more Jira issues (pagination)
+function loadMoreJiraIssues() {
+    const startIndex = currentJiraPage * ISSUES_PER_PAGE;
+    const endIndex = startIndex + ISSUES_PER_PAGE;
+    const newIssues = filteredJiraIssues.slice(startIndex, endIndex);
+    
+    displayedJiraIssues = displayedJiraIssues.concat(newIssues);
+    currentJiraPage++;
+    
+    // Display issues
+    displayJiraIssues();
+    
+    // Update results info
+    updateJiraResultsInfo();
+    
+    // Show/hide Load More button
+    const loadMoreContainer = document.getElementById('jira-load-more-container');
+    if (endIndex >= filteredJiraIssues.length) {
+        loadMoreContainer.style.display = 'none';
+    } else {
+        loadMoreContainer.style.display = 'flex';
     }
-    
-    // Filter by search text (ID, title, or description)
-    if (searchText) {
-        filteredIssues = filteredIssues.filter(issue => 
-            issue.key.toLowerCase().includes(searchText) ||
-            issue.summary.toLowerCase().includes(searchText) ||
-            issue.description.toLowerCase().includes(searchText)
-        );
-    }
-    
-    // Display filtered issues
-    displayJiraIssues(filteredIssues);
+}
+
+// Update results info
+function updateJiraResultsInfo() {
+    document.getElementById('jira-showing-count').textContent = displayedJiraIssues.length;
+    document.getElementById('jira-total-count').textContent = filteredJiraIssues.length;
 }
 
 // Display Jira issues in modal
-function displayJiraIssues(issues) {
+function displayJiraIssues() {
     const issuesList = document.getElementById('jira-issues-list');
     
-    if (issues.length === 0) {
-        issuesList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #718096;">No issues found matching your criteria.</div>';
+    if (filteredJiraIssues.length === 0) {
+        issuesList.innerHTML = `
+            <div class="jira-empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <h4>No issues found</h4>
+                <p>Try adjusting your filters or search criteria</p>
+            </div>
+        `;
         return;
     }
     
-    issuesList.innerHTML = issues.map(issue => `
-        <div class="jira-issue-item" onclick="selectJiraIssue('${issue.key}')">
-            <div class="jira-issue-header">
-                <span class="jira-issue-key">${issue.key}</span>
-                <span class="jira-issue-type ${issue.type}">${issue.type}</span>
+    issuesList.innerHTML = displayedJiraIssues.map(issue => {
+        const statusClass = issue.status.toLowerCase().replace(/\s+/g, '-');
+        const priorityClass = issue.priority.toLowerCase();
+        const assigneeInitials = issue.assignee === 'Unassigned' ? 'U' : issue.assignee.split(' ').map(n => n[0]).join('');
+        
+        return `
+            <div class="jira-issue-item" onclick="selectJiraIssue('${issue.key}')">
+                <div class="jira-issue-tooltip">
+                    <div class="jira-issue-tooltip-title">${issue.key}: ${issue.summary}</div>
+                    <div class="jira-issue-tooltip-description">${issue.description}</div>
+                </div>
+                <div class="jira-issue-header">
+                    <span class="jira-issue-key">${issue.key}</span>
+                    <span class="jira-issue-type ${issue.type}">${issue.type}</span>
+                </div>
+                <div class="jira-issue-summary">${issue.summary}</div>
+                <div class="jira-issue-description">${issue.description}</div>
+                <div class="jira-issue-meta">
+                    <span class="jira-issue-status ${statusClass}">${issue.status}</span>
+                    <span class="jira-issue-priority ${priorityClass}">${issue.priority}</span>
+                    <div class="jira-issue-assignee">
+                        <div class="jira-issue-avatar">${assigneeInitials}</div>
+                        <span>${issue.assignee}</span>
+                    </div>
+                </div>
             </div>
-            <div class="jira-issue-summary">${issue.summary}</div>
-            <div class="jira-issue-description">${issue.description}</div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Select a Jira issue

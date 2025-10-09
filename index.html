@@ -335,22 +335,70 @@ Example:
                 <p style="color: #718096; margin-bottom: 1.5rem;">Select a Jira issue to import its title and description into the test plan configuration.</p>
                 
                 <!-- Search and Filter Controls -->
-                <div class="jira-filters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-                    <div style="flex: 1;">
-                        <input type="text" id="jira-search" class="form-control" placeholder="Search by ID, title, or description..." oninput="filterJiraIssues()">
+                <div class="jira-filters-container">
+                    <div class="jira-filters-row">
+                        <div style="flex: 2;">
+                            <input type="text" id="jira-search" class="form-control" placeholder="🔍 Search by ID, title, or description..." oninput="filterJiraIssues()">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <select id="jira-type-filter" class="form-control" onchange="filterJiraIssues()">
+                                <option value="">All Types</option>
+                                <option value="story">Story</option>
+                                <option value="bug">Bug</option>
+                                <option value="task">Task</option>
+                                <option value="epic">Epic</option>
+                            </select>
+                        </div>
                     </div>
-                    <div style="min-width: 200px;">
-                        <select id="jira-type-filter" class="form-control" onchange="filterJiraIssues()">
-                            <option value="">All Types</option>
-                            <option value="story">Story</option>
-                            <option value="bug">Bug</option>
-                            <option value="task">Task</option>
-                        </select>
+                    <div class="jira-filters-row">
+                        <div style="flex: 1;">
+                            <select id="jira-status-filter" class="form-control" onchange="filterJiraIssues()">
+                                <option value="">All Status</option>
+                                <option value="To Do">To Do</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Done">Done</option>
+                                <option value="Blocked">Blocked</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <select id="jira-priority-filter" class="form-control" onchange="filterJiraIssues()">
+                                <option value="">All Priorities</option>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <select id="jira-assignee-filter" class="form-control" onchange="filterJiraIssues()">
+                                <option value="">All Assignees</option>
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <button class="btn-clear-filters" onclick="clearJiraFilters()" title="Clear all filters">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
+                </div>
+                
+                <div class="jira-results-info" id="jira-results-info">
+                    Showing <span id="jira-showing-count">0</span> of <span id="jira-total-count">0</span> issues
                 </div>
                 
                 <div class="jira-issues-list" id="jira-issues-list">
                     <!-- Jira issues will be populated here -->
+                </div>
+                
+                <div class="jira-load-more-container" id="jira-load-more-container" style="display: none;">
+                    <button class="btn-load-more" onclick="loadMoreJiraIssues()">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
+                        </svg>
+                        Load More
+                    </button>
                 </div>
             </div>
             <div class="modal-footer">
