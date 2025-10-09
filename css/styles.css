@@ -1315,11 +1315,8 @@ label {
 }
 
 .jira-issue-tooltip {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-8px);
-    background: rgba(0, 0, 0, 0.9);
+    position: fixed;
+    background: rgba(0, 0, 0, 0.95);
     color: white;
     padding: 1rem;
     border-radius: 12px;
@@ -1331,7 +1328,8 @@ label {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.3s ease;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
 }
 
 .jira-issue-tooltip::after {
@@ -1341,12 +1339,11 @@ label {
     left: 50%;
     transform: translateX(-50%);
     border: 8px solid transparent;
-    border-top-color: rgba(0, 0, 0, 0.9);
+    border-top-color: rgba(0, 0, 0, 0.95);
 }
 
 .jira-issue-item:hover .jira-issue-tooltip {
     opacity: 1;
-    transform: translateX(-50%) translateY(-12px);
 }
 
 .jira-issue-tooltip-title {

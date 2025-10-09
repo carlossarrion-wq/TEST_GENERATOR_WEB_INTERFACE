@@ -1120,6 +1120,64 @@ function displayJiraIssues() {
             </div>
         `;
     }).join('');
+    
+    // Add event listeners for tooltip positioning
+    setTimeout(() => {
+        const issueItems = issuesList.querySelectorAll('.jira-issue-item');
+        issueItems.forEach(item => {
+            const tooltip = item.querySelector('.jira-issue-tooltip');
+            
+            item.addEventListener('mouseenter', function() {
+                positionTooltip(item, tooltip);
+            });
+            
+            item.addEventListener('mousemove', function() {
+                positionTooltip(item, tooltip);
+            });
+        });
+    }, 0);
+}
+
+// Position tooltip using fixed positioning
+function positionTooltip(item, tooltip) {
+    const rect = item.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    // Calculate position above the item
+    const left = rect.left + (rect.width / 2);
+    const top = rect.top - 16; // 16px above the item
+    
+    // Set position
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+    tooltip.style.transform = 'translateX(-50%) translateY(-100%)';
+    
+    // Check if tooltip goes off screen and adjust if needed
+    const tooltipWidth = tooltipRect.width || 400; // Use actual width or max-width
+    const viewportWidth = window.innerWidth;
+    
+    // Adjust horizontal position if tooltip goes off screen
+    if (left - tooltipWidth / 2 < 10) {
+        // Too far left
+        tooltip.style.left = '10px';
+        tooltip.style.transform = 'translateY(-100%)';
+    } else if (left + tooltipWidth / 2 > viewportWidth - 10) {
+        // Too far right
+        tooltip.style.left = (viewportWidth - 10) + 'px';
+        tooltip.style.transform = 'translateX(-100%) translateY(-100%)';
+    }
+    
+    // Adjust vertical position if tooltip goes off top of screen
+    if (top - tooltipRect.height < 10) {
+        // Show below instead
+        tooltip.style.top = (rect.bottom + 16) + 'px';
+        tooltip.style.transform = tooltip.style.transform.replace('translateY(-100%)', 'translateY(0)');
+        
+        // Flip arrow direction (would need CSS adjustment)
+        tooltip.classList.add('tooltip-below');
+    } else {
+        tooltip.classList.remove('tooltip-below');
+    }
 }
 
 // Select a Jira issue
