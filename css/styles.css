@@ -238,7 +238,7 @@ label {
 
 .slider-value {
     position: absolute;
-    top: 0;
+    top: 0.5rem;
     left: 50%;
     transform: translateX(-50%);
     background: linear-gradient(135deg, #319795 0%, #2c7a7b 100%);
@@ -248,6 +248,7 @@ label {
     font-size: 0.9rem;
     font-weight: 500;
     box-shadow: 0 2px 8px rgba(49, 151, 149, 0.3);
+    z-index: 20;
 }
 
 /* Buttons */
