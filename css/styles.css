@@ -1318,7 +1318,7 @@ label {
     line-height: 1.6;
     max-width: 400px;
     width: max-content;
-    z-index: 1000;
+    z-index: 10000;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.3s ease;
