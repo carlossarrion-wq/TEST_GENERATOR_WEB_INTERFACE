@@ -181,8 +181,8 @@ label {
 }
 
 .slider-segment.active {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    background: #BED9DA;
+    box-shadow: 0 2px 8px rgba(190, 217, 218, 0.3);
 }
 
 .slider {
@@ -203,27 +203,19 @@ label {
     appearance: none;
     width: 24px;
     height: 32px;
-    background: rgba(49, 151, 149, 0.3);
+    background: transparent;
     cursor: pointer;
     border-radius: 4px;
-    border: 2px solid #319795;
-}
-
-.slider::-webkit-slider-thumb:hover {
-    background: rgba(49, 151, 149, 0.5);
+    border: none;
 }
 
 .slider::-moz-range-thumb {
     width: 24px;
     height: 32px;
-    background: rgba(49, 151, 149, 0.3);
+    background: transparent;
     cursor: pointer;
     border-radius: 4px;
-    border: 2px solid #319795;
-}
-
-.slider::-moz-range-thumb:hover {
-    background: rgba(49, 151, 149, 0.5);
+    border: none;
 }
 
 .slider-labels {
@@ -941,8 +933,8 @@ label {
 }
 
 .dual-slider-segment.active {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    background: #BED9DA;
+    box-shadow: 0 2px 8px rgba(190, 217, 218, 0.3);
 }
 
 .dual-slider {
@@ -964,39 +956,21 @@ label {
     appearance: none;
     width: 24px;
     height: 32px;
-    background: rgba(49, 151, 149, 0.3);
+    background: transparent;
     cursor: pointer;
     border-radius: 4px;
-    border: 2px solid #319795;
+    border: none;
     pointer-events: all;
-}
-
-.dual-slider::-webkit-slider-thumb:hover {
-    background: rgba(49, 151, 149, 0.5);
-}
-
-.dual-slider::-webkit-slider-thumb:active {
-    background: rgba(49, 151, 149, 0.7);
-    transform: scale(1.1);
 }
 
 .dual-slider::-moz-range-thumb {
     width: 24px;
     height: 32px;
-    background: rgba(49, 151, 149, 0.3);
+    background: transparent;
     cursor: pointer;
     border-radius: 4px;
-    border: 2px solid #319795;
+    border: none;
     pointer-events: all;
-}
-
-.dual-slider::-moz-range-thumb:hover {
-    background: rgba(49, 151, 149, 0.5);
-}
-
-.dual-slider::-moz-range-thumb:active {
-    background: rgba(49, 151, 149, 0.7);
-    transform: scale(1.1);
 }
 
 .dual-slider#min-cases {
