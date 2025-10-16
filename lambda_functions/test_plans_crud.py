@@ -9,6 +9,7 @@ from db_utils import (
     validate_required_fields, generate_plan_id, handle_cors_preflight,
     QUERIES
 )
+from auth_service import validate_request_auth
 
 def lambda_handler(event, context):
     """Main Lambda handler for test plans CRUD operations"""
@@ -16,6 +17,14 @@ def lambda_handler(event, context):
     # Handle CORS preflight requests
     if event['httpMethod'] == 'OPTIONS':
         return handle_cors_preflight()
+    
+    # Validate authentication for all requests
+    is_valid, user_info, auth_error = validate_request_auth(event)
+    if not is_valid:
+        return auth_error
+    
+    # Log authenticated user for debugging
+    print(f"🔐 Authenticated request from user: {user_info['access_key']}")
     
     try:
         method = event['httpMethod']
@@ -31,18 +40,18 @@ def lambda_handler(event, context):
         
         elif method == 'POST':
             body = json.loads(event['body']) if event['body'] else {}
-            return create_test_plan(body)
+            return create_test_plan(body, user_info)
         
         elif method == 'PUT':
             if 'plan_id' not in path_parameters:
                 return create_error_response(400, "Plan ID is required for update", "ValidationError")
             body = json.loads(event['body']) if event['body'] else {}
-            return update_test_plan(path_parameters['plan_id'], body)
+            return update_test_plan(path_parameters['plan_id'], body, user_info)
         
         elif method == 'DELETE':
             if 'plan_id' not in path_parameters:
                 return create_error_response(400, "Plan ID is required for deletion", "ValidationError")
-            return delete_test_plan(path_parameters['plan_id'])
+            return delete_test_plan(path_parameters['plan_id'], user_info)
         
         else:
             return create_error_response(405, f"Method {method} not allowed", "MethodNotAllowed")
@@ -67,7 +76,7 @@ def get_test_plans(query_params):
             limit = 100
         
         with DatabaseConnection() as cursor:
-            # Build dynamic query
+            # Build dynamic query with user information
             base_query = """
                 SELECT 
                     tp.id,
@@ -82,9 +91,13 @@ def get_test_plans(query_params):
                     tp.status,
                     tp.created_at,
                     tp.updated_at,
-                    COALESCE(COUNT(tc.id), 0) as test_cases_count
+                    COALESCE(COUNT(tc.id), 0) as test_cases_count,
+                    cu.access_key as created_by_access_key,
+                    mu.access_key as modified_by_access_key
                 FROM test_plans tp
                 LEFT JOIN test_cases tc ON tp.id = tc.test_plan_id AND tc.is_deleted = FALSE
+                LEFT JOIN auth_users cu ON tp.created_by_user_id = cu.id
+                LEFT JOIN auth_users mu ON tp.modified_by_user_id = mu.id
                 WHERE tp.is_deleted = FALSE
             """
             
@@ -176,8 +189,12 @@ def get_test_plan(plan_id):
             test_cases = cursor.fetchall()
             
             # Get chat messages for this plan
+            print(f"🔍 Looking for chat messages for plan ID {test_plan['id']}")
             cursor.execute(QUERIES['get_chat_messages_by_plan'], (test_plan['id'],))
             chat_messages = cursor.fetchall()
+            print(f"📨 Found {len(chat_messages)} chat messages")
+            if chat_messages:
+                print(f"📨 First message sample: {chat_messages[0]}")
             
             # Build complete response
             response_data = {
@@ -186,13 +203,18 @@ def get_test_plan(plan_id):
                 'chat_messages': chat_messages
             }
             
+            # IMPORTANT: Also add chat_messages directly to test_plan for frontend compatibility
+            test_plan['chat_messages'] = chat_messages
+            test_plan['chatHistory'] = chat_messages  # Also add as chatHistory for compatibility
+            print(f"✅ Test plan response includes {len(chat_messages)} chat messages")
+            
             return create_response(200, response_data)
     
     except Exception as e:
         print(f"Error getting test plan {plan_id}: {str(e)}")
         return create_error_response(500, "Error retrieving test plan", "DatabaseError")
 
-def create_test_plan(data):
+def create_test_plan(data, user_info=None):
     """Create a new test plan"""
     try:
         # Validate required fields
@@ -224,20 +246,27 @@ def create_test_plan(data):
             return create_error_response(400, f"Status must be one of: {', '.join(valid_statuses)}", "ValidationError")
         
         with DatabaseConnection() as cursor:
-            # Insert test plan
+            # Get user ID for audit trail
+            current_user_id = None
+            if user_info and user_info.get('id'):
+                current_user_id = user_info['id']
+            
+            # Insert test plan with user audit information
             insert_query = """
                 INSERT INTO test_plans (
                     plan_id, title, reference, requirements, coverage_percentage,
-                    min_test_cases, max_test_cases, selected_test_types, status
+                    min_test_cases, max_test_cases, selected_test_types, status,
+                    created_by_user_id, modified_by_user_id
                 ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
             """
             
             cursor.execute(insert_query, (
                 plan_id, data['title'], reference, data['requirements'],
                 coverage_percentage, min_test_cases, max_test_cases,
-                json.dumps(selected_test_types), status
+                json.dumps(selected_test_types), status,
+                current_user_id, current_user_id  # Both created and modified by the same user initially
             ))
             
             # Get the created test plan's internal ID
@@ -293,6 +322,35 @@ def create_test_plan(data):
                 
                 print(f"Successfully saved {test_cases_saved} test cases")
             
+            # Process and save chat messages if provided
+            chat_messages_saved = 0
+            if 'chatHistory' in data and isinstance(data['chatHistory'], list):
+                print(f"Processing {len(data['chatHistory'])} chat messages...")
+                
+                for i, message in enumerate(data['chatHistory']):
+                    try:
+                        message_query = """
+                            INSERT INTO chat_messages (
+                                test_plan_id, message_type, content, message_order, created_at
+                            ) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        """
+                        
+                        cursor.execute(message_query, (
+                            test_plan_internal_id,
+                            message.get('type', 'user'),  # 'user' or 'assistant'
+                            message.get('content', ''),
+                            i + 1  # message_order starts from 1
+                        ))
+                        
+                        chat_messages_saved += 1
+                        
+                    except Exception as chat_error:
+                        print(f"Error saving chat message {i}: {str(chat_error)}")
+                        # Continue with other messages even if one fails
+                        continue
+                
+                print(f"Successfully saved {chat_messages_saved} chat messages")
+            
             # Get the created test plan with updated test case count
             cursor.execute(QUERIES['get_test_plan_summary'], (plan_id,))
             created_plan = cursor.fetchone()
@@ -304,11 +362,17 @@ def create_test_plan(data):
                 except json.JSONDecodeError:
                     created_plan['selected_test_types'] = []
             
-            return create_response(201, {
+            response_data = {
                 'message': 'Test plan created successfully',
                 'test_plan': created_plan,
                 'test_cases_saved': test_cases_saved
-            })
+            }
+            
+            # Include chat messages info in response if processed
+            if 'chatHistory' in data:
+                response_data['chat_messages_saved'] = chat_messages_saved
+            
+            return create_response(201, response_data)
     
     except ValueError as e:
         return create_error_response(400, str(e), "ValidationError")
@@ -316,7 +380,7 @@ def create_test_plan(data):
         print(f"Error creating test plan: {str(e)}")
         return create_error_response(500, "Error creating test plan", "DatabaseError")
 
-def update_test_plan(plan_id, data):
+def update_test_plan(plan_id, data, user_info=None):
     """Update an existing test plan"""
     try:
         with DatabaseConnection() as cursor:
@@ -347,6 +411,11 @@ def update_test_plan(plan_id, data):
                 update_fields.append("selected_test_types = %s")
                 params.append(json.dumps(data['selected_test_types']))
             
+            # Add modified_by_user_id for audit trail
+            if user_info and user_info.get('id'):
+                update_fields.append("modified_by_user_id = %s")
+                params.append(user_info['id'])
+            
             if not update_fields:
                 return create_error_response(400, "No valid fields to update", "ValidationError")
             
@@ -376,6 +445,75 @@ def update_test_plan(plan_id, data):
             
             cursor.execute(update_query, params)
             
+            # Handle test cases update if provided
+            test_cases_processed = 0
+            if 'testCases' in data:
+                test_plan_internal_id = existing_plan['id']
+                
+                # First, soft delete all existing test cases for this plan
+                cursor.execute("""
+                    UPDATE test_cases 
+                    SET is_deleted = TRUE, updated_at = CURRENT_TIMESTAMP
+                    WHERE test_plan_id = %s
+                """, (test_plan_internal_id,))
+                
+                # Delete existing test steps for this plan
+                cursor.execute("""
+                    DELETE FROM test_steps 
+                    WHERE test_case_id IN (
+                        SELECT id FROM test_cases WHERE test_plan_id = %s
+                    )
+                """, (test_plan_internal_id,))
+                
+                # Insert new/updated test cases
+                if isinstance(data['testCases'], list):
+                    print(f"Processing {len(data['testCases'])} test cases for update...")
+                    
+                    for test_case in data['testCases']:
+                        try:
+                            # Insert test case
+                            test_case_query = """
+                                INSERT INTO test_cases (
+                                    test_plan_id, case_id, name, description, priority,
+                                    preconditions, expected_result, test_data
+                                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            """
+                            
+                            cursor.execute(test_case_query, (
+                                test_plan_internal_id,
+                                test_case.get('id', f'TC-{test_cases_processed + 1:03d}'),
+                                test_case.get('name', f'Test Case {test_cases_processed + 1}'),
+                                test_case.get('description', ''),
+                                test_case.get('priority', 'Medium'),
+                                test_case.get('preconditions', ''),
+                                test_case.get('expectedResult', ''),
+                                test_case.get('testData', '')
+                            ))
+                            
+                            test_case_internal_id = cursor.lastrowid
+                            
+                            # Insert test steps if provided
+                            if 'steps' in test_case and isinstance(test_case['steps'], list):
+                                for step in test_case['steps']:
+                                    step_query = """
+                                        INSERT INTO test_steps (test_case_id, step_number, description)
+                                        VALUES (%s, %s, %s)
+                                    """
+                                    cursor.execute(step_query, (
+                                        test_case_internal_id,
+                                        step.get('number', 1),
+                                        step.get('description', '')
+                                    ))
+                            
+                            test_cases_processed += 1
+                            
+                        except Exception as step_error:
+                            print(f"Error updating test case {test_case.get('id', 'unknown')}: {str(step_error)}")
+                            # Continue with other test cases even if one fails
+                            continue
+                    
+                    print(f"Successfully processed {test_cases_processed} test cases for update")
+            
             # Get updated test plan
             cursor.execute(QUERIES['get_test_plan_summary'], (plan_id,))
             updated_plan = cursor.fetchone()
@@ -387,16 +525,62 @@ def update_test_plan(plan_id, data):
                 except json.JSONDecodeError:
                     updated_plan['selected_test_types'] = []
             
-            return create_response(200, {
+            response_data = {
                 'message': 'Test plan updated successfully',
                 'test_plan': updated_plan
-            })
+            }
+            
+            # Handle chat history update if provided
+            chat_messages_processed = 0
+            if 'chatHistory' in data and isinstance(data['chatHistory'], list):
+                test_plan_internal_id = existing_plan['id']
+                
+                # First, delete existing chat messages for this plan
+                cursor.execute("""
+                    DELETE FROM chat_messages 
+                    WHERE test_plan_id = %s
+                """, (test_plan_internal_id,))
+                
+                # Insert new chat messages
+                print(f"Processing {len(data['chatHistory'])} chat messages for update...")
+                
+                for i, message in enumerate(data['chatHistory']):
+                    try:
+                        message_query = """
+                            INSERT INTO chat_messages (
+                                test_plan_id, message_type, content, message_order, created_at
+                            ) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        """
+                        
+                        cursor.execute(message_query, (
+                            test_plan_internal_id,
+                            message.get('type', 'user'),  # 'user' or 'assistant'
+                            message.get('content', ''),
+                            i + 1  # message_order starts from 1
+                        ))
+                        
+                        chat_messages_processed += 1
+                        
+                    except Exception as chat_error:
+                        print(f"Error saving chat message {i}: {str(chat_error)}")
+                        # Continue with other messages even if one fails
+                        continue
+                
+                print(f"Successfully processed {chat_messages_processed} chat messages for update")
+            
+            # Include update info in response
+            if 'testCases' in data:
+                response_data['test_cases_updated'] = test_cases_processed
+            if 'chatHistory' in data:
+                response_data['chat_messages_updated'] = chat_messages_processed
+            
+            return create_response(200, response_data)
     
     except Exception as e:
         print(f"Error updating test plan {plan_id}: {str(e)}")
         return create_error_response(500, "Error updating test plan", "DatabaseError")
 
-def delete_test_plan(plan_id):
+def delete_test_plan(plan_id, user_info=None):
     """Soft delete a test plan and all associated data"""
     try:
         with DatabaseConnection() as cursor:

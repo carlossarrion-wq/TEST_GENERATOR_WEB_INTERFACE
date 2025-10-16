@@ -6,8 +6,7 @@ let testCases = [];
 
 // Check authentication on page load
 document.addEventListener('DOMContentLoaded', function() {
-    if (sessionStorage.getItem('user_authenticated') !== 'true') {
-        window.location.href = 'login.html';
+    if (!apiService.checkAuthAndRedirect()) {
         return;
     }
     
@@ -16,6 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize application
 function initializeApp() {
+    // Update user info in header
+    updateUserInfo();
+    
     // Set up slider event listeners
     setupSliders();
     
@@ -29,6 +31,70 @@ function initializeApp() {
     
     // Initialize button state
     updateGenerateButtonState();
+}
+
+// Update user information in header
+function updateUserInfo() {
+    try {
+        const accessKey = sessionStorage.getItem('access_key');
+        const awsUserInfo = sessionStorage.getItem('aws_user_info');
+        
+        const userNameElement = document.getElementById('user-name');
+        const userRoleElement = document.getElementById('user-role');
+        
+        if (userNameElement && userRoleElement) {
+            if (awsUserInfo) {
+                try {
+                    const parsedUserInfo = JSON.parse(awsUserInfo);
+                    
+                    // Extract meaningful name from ARN or use account info
+                    let displayName = accessKey ? accessKey.substring(0, 12) + '...' : 'AWS User';
+                    let roleInfo = 'AWS User';
+                    
+                    if (parsedUserInfo.arn) {
+                        // Try to extract user name from ARN
+                        const arnParts = parsedUserInfo.arn.split('/');
+                        if (arnParts.length > 1) {
+                            displayName = arnParts[arnParts.length - 1];
+                        }
+                        
+                        // Extract role info
+                        if (parsedUserInfo.arn.includes(':role/')) {
+                            roleInfo = 'AWS Role';
+                        } else if (parsedUserInfo.arn.includes(':user/')) {
+                            roleInfo = 'AWS User';
+                        } else if (parsedUserInfo.arn.includes(':root')) {
+                            roleInfo = 'AWS Root';
+                        }
+                    }
+                    
+                    if (parsedUserInfo.account) {
+                        roleInfo += ` (${parsedUserInfo.account})`;
+                    }
+                    
+                    userNameElement.textContent = displayName;
+                    userRoleElement.textContent = roleInfo;
+                } catch (parseError) {
+                    console.warn('Could not parse AWS user info:', parseError);
+                    userNameElement.textContent = accessKey ? accessKey.substring(0, 12) + '...' : 'AWS User';
+                    userRoleElement.textContent = 'AWS User';
+                }
+            } else {
+                // Fallback display
+                userNameElement.textContent = accessKey ? accessKey.substring(0, 12) + '...' : 'AWS User';
+                userRoleElement.textContent = 'AWS User';
+            }
+        }
+    } catch (error) {
+        console.error('Error updating user info:', error);
+        
+        // Fallback to minimal display
+        const userNameElement = document.getElementById('user-name');
+        const userRoleElement = document.getElementById('user-role');
+        
+        if (userNameElement) userNameElement.textContent = 'AWS User';
+        if (userRoleElement) userRoleElement.textContent = 'Authenticated';
+    }
 }
 
 // Update Generate Test Plan button state
@@ -188,9 +254,12 @@ async function generateTestPlan() {
         return;
     }
     
-    // Generate unique ID for the test plan
-    const planId = generateTestPlanId();
-    document.getElementById('plan-id').value = planId;
+    // Use existing plan ID if available, otherwise generate new one
+    let planId = document.getElementById('plan-id').value.trim();
+    if (!planId || (currentTestPlan && !currentTestPlan.id)) {
+        planId = generateTestPlanId();
+        document.getElementById('plan-id').value = planId;
+    }
     
     // Show loading state
     const btn = event.target;
@@ -587,10 +656,16 @@ function addChatMessage(message, type) {
 
 // Save test plan using API
 async function saveTestPlan() {
+    console.log('🔍 saveTestPlan() called');
+    
     if (!currentTestPlan) {
+        console.error('❌ No currentTestPlan found');
         showErrorMessage('No test plan to save');
         return;
     }
+    
+    console.log('📋 Current test plan:', currentTestPlan);
+    console.log('📋 Test cases array:', testCases);
     
     // Show loading state
     const btn = event.target;
@@ -598,42 +673,117 @@ async function saveTestPlan() {
     btn.disabled = true;
     btn.innerHTML = '<div class="loading-spinner"></div> Saving...';
     
+    console.log('🔄 Starting save process...');
+    
     try {
         // Get chat history
         const chatMessages = document.getElementById('chat-messages');
         const chatHistory = [];
-        chatMessages.querySelectorAll('.chat-message').forEach(msg => {
+        
+        console.log('🔍 Extracting chat history from DOM...');
+        console.log('   Chat messages container:', chatMessages);
+        console.log('   Found chat message elements:', chatMessages.querySelectorAll('.chat-message').length);
+        
+        chatMessages.querySelectorAll('.chat-message').forEach((msg, index) => {
             const isAssistant = msg.classList.contains('assistant');
-            const content = msg.querySelector('.message-content p').innerHTML.replace(/<br>/g, '\n');
-            chatHistory.push({
-                type: isAssistant ? 'assistant' : 'user',
-                content: content
+            const contentElement = msg.querySelector('.message-content p');
+            
+            console.log(`   Message ${index}:`, {
+                element: msg,
+                isAssistant: isAssistant,
+                contentElement: contentElement,
+                innerHTML: contentElement ? contentElement.innerHTML : 'NO CONTENT ELEMENT'
             });
+            
+            if (contentElement) {
+                const content = contentElement.innerHTML.replace(/<br>/g, '\n');
+                console.log(`   Extracted content: "${content}"`);
+                
+                chatHistory.push({
+                    type: isAssistant ? 'assistant' : 'user',
+                    content: content
+                });
+            } else {
+                console.warn(`   ⚠️ No content element found for message ${index}`);
+            }
         });
         
-        // Update current test plan with latest data
+        console.log('📝 Final chat history extracted:', chatHistory);
+        console.log('   Total messages extracted:', chatHistory.length);
+        
+        // IMPORTANT: Update current test plan with latest form data AND test cases
+        currentTestPlan.title = document.getElementById('plan-title').value.trim();
+        currentTestPlan.reference = document.getElementById('plan-reference').value.trim();
+        currentTestPlan.requirements = document.getElementById('requirements').value.trim();
+        currentTestPlan.coverage = parseInt(document.getElementById('coverage').value);
+        currentTestPlan.minCases = parseInt(document.getElementById('min-cases').value);
+        currentTestPlan.maxCases = parseInt(document.getElementById('max-cases').value);
+        currentTestPlan.testType = document.getElementById('selected-test-type').value;
         currentTestPlan.chatHistory = chatHistory;
         currentTestPlan.lastModified = new Date().toISOString();
         currentTestPlan.testCases = [...testCases]; // Ensure latest test cases are included (deep copy)
+        
+        console.log('📝 Updated plan with current form data:');
+        console.log('   Title:', currentTestPlan.title);
+        console.log('   Test Cases Count:', currentTestPlan.testCases.length);
+        console.log('   Requirements:', currentTestPlan.requirements.substring(0, 50) + '...');
         
         console.log('💾 Saving plan with test cases:', testCases.length);
         console.log('🔍 Current test plan structure:', currentTestPlan);
         
         let savedPlan;
         
-        // Check if this plan already exists in backend
-        if (currentTestPlan.backendId) {
-            // Update existing plan
-            console.log('📝 Updating existing test plan in backend...', currentTestPlan.backendId);
-            savedPlan = await apiService.updateTestPlan(currentTestPlan.backendId, currentTestPlan);
-            console.log('✅ Test plan updated in backend:', savedPlan);
+        // Determine if this is an update or create operation
+        const hasBackendId = currentTestPlan.backendId && currentTestPlan.backendId !== '';
+        const hasValidPlanId = currentTestPlan.id && typeof currentTestPlan.id === 'string' && currentTestPlan.id.startsWith('TP-');
+        // Only UPDATE if we have backendId (exists on server), otherwise always CREATE
+        const isExistingPlan = hasBackendId;
+        
+        console.log('🔍 Save operation details:', {
+            hasBackendId,
+            hasValidPlanId, 
+            isExistingPlan,
+            backendId: currentTestPlan.backendId,
+            planId: currentTestPlan.id,
+            hasTestCases: testCases.length
+        });
+        
+        if (isExistingPlan) {
+            // For existing plans, ALWAYS try to update first
+            const planIdForUpdate = currentTestPlan.backendId || currentTestPlan.id;
+            console.log('📝 Attempting to update existing plan:', planIdForUpdate);
+            
+            try {
+                savedPlan = await apiService.updateTestPlan(planIdForUpdate, currentTestPlan);
+                console.log('✅ Plan successfully updated:', savedPlan);
+                
+                // Make sure we have the backend ID stored
+                if (!currentTestPlan.backendId && savedPlan.id) {
+                    currentTestPlan.backendId = savedPlan.id;
+                }
+                
+                console.log('✅ Server update successful, continuing with localStorage...');
+            } catch (updateError) {
+                console.error('❌ Server update failed:', updateError.message);
+                // Don't throw error here - let it fall through to localStorage backup
+                showWarningMessage(`Could not update on server: ${updateError.message}. Saving locally instead.`);
+            }
         } else {
             // Create new plan
-            console.log('💾 Saving new test plan to backend...', currentTestPlan);
-            savedPlan = await apiService.createTestPlan(currentTestPlan);
-            currentTestPlan.backendId = savedPlan.id; // Store backend ID for future updates
-            console.log('✅ Test plan saved to backend:', savedPlan);
+            console.log('💾 Creating new plan:', currentTestPlan.id);
+            try {
+                savedPlan = await apiService.createTestPlan(currentTestPlan);
+                currentTestPlan.backendId = savedPlan.id;
+                console.log('✅ Plan successfully created:', savedPlan);
+                console.log('✅ Server create successful, continuing with localStorage...');
+            } catch (createError) {
+                console.error('❌ Server create failed:', createError.message);
+                // Don't throw error here - let it fall through to localStorage backup
+                showWarningMessage(`Could not create on server: ${createError.message}. Saving locally instead.`);
+            }
         }
+        
+        console.log('💾 Saving to localStorage as backup...');
         
         // Also save to localStorage as backup
         const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
@@ -941,6 +1091,12 @@ function deleteTestCase(testCaseId) {
         testCases.splice(index, 1);
     }
     
+    // IMPORTANT: Also update currentTestPlan to keep them in sync
+    if (currentTestPlan) {
+        currentTestPlan.testCases = [...testCases];
+        console.log('🗑️ Updated currentTestPlan after deletion. New count:', testCases.length);
+    }
+    
     // Update display
     displayTestCases();
 }
@@ -960,6 +1116,12 @@ function deleteAllTestCases() {
     
     // Clear the test cases array
     testCases = [];
+    
+    // IMPORTANT: Also update currentTestPlan to keep them in sync
+    if (currentTestPlan) {
+        currentTestPlan.testCases = [];
+        console.log('🗑️ Updated currentTestPlan after deleting all test cases. New count:', 0);
+    }
     
     // Update the display
     displayTestCases();
@@ -1388,6 +1550,24 @@ async function openLoadPlanModal() {
                 serverPlans = response.plans;
                 console.log('✅ Loaded', serverPlans.length, 'plans from server');
                 
+                // For each server plan, also load full details including chat messages
+                for (let plan of serverPlans) {
+                    try {
+                        console.log(`🔍 Loading full details for plan ${plan.plan_id}...`);
+                        const fullPlan = await apiService.getTestPlan(plan.plan_id);
+                        
+                        if (fullPlan.test_plan) {
+                            // Replace the summary with full plan details
+                            Object.assign(plan, fullPlan.test_plan);
+                            plan.testCases = fullPlan.test_cases || [];
+                            plan.chatHistory = fullPlan.chat_messages || fullPlan.test_plan.chat_messages || fullPlan.test_plan.chatHistory || [];
+                            console.log(`✅ Loaded full plan with ${plan.testCases.length} test cases and ${plan.chatHistory.length} chat messages`);
+                        }
+                    } catch (detailError) {
+                        console.warn(`⚠️ Could not load full details for plan ${plan.plan_id}:`, detailError.message);
+                    }
+                }
+                
                 // For server plans, also try to load their test cases if needed
                 for (let plan of serverPlans) {
                     if (plan.test_cases_count > 0 && !plan.testCases) {
@@ -1443,7 +1623,11 @@ async function openLoadPlanModal() {
         allSavedPlans = Array.from(planMap.values());
         
         // Sort by creation date (newest first)
-        allSavedPlans.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        allSavedPlans.sort((a, b) => {
+            const dateA = new Date(a.created_at || a.createdAt || 0);
+            const dateB = new Date(b.created_at || b.createdAt || 0);
+            return dateB - dateA;
+        });
         
         if (allSavedPlans.length === 0) {
             plansList.innerHTML = `
@@ -1458,8 +1642,9 @@ async function openLoadPlanModal() {
         } else {
             // Display saved plans
             plansList.innerHTML = allSavedPlans.map((plan, index) => {
-                const date = new Date(plan.createdAt);
-                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                // Handle both server format (created_at) and local format (createdAt)
+                const createdDate = new Date(plan.created_at || plan.createdAt || Date.now());
+                const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString();
                 const numTestCases = plan.testCases ? plan.testCases.length : 0;
                 
                 // Build ID and Reference display
@@ -1476,6 +1661,30 @@ async function openLoadPlanModal() {
                     `<span title="Saved on server" style="color: #48bb78;">☁️</span>` : 
                     `<span title="Local only" style="color: #ed8936;">💾</span>`;
                 
+                // Handle both server format (updated_at) and local format (lastModified) for modified date
+                const lastModifiedDate = plan.updated_at || plan.lastModified;
+                const createdDateStr = plan.created_at || plan.createdAt;
+                
+                // Format creator information
+                let creatorInfo = '';
+                const createdBy = plan.created_by_access_key || plan.createdBy;
+                const modifiedBy = plan.modified_by_access_key || plan.modifiedBy;
+                
+                if (createdBy) {
+                    // Show first few characters of access key for identification
+                    const creatorDisplay = createdBy.substring(0, 8) + '...';
+                    creatorInfo = `Created by: ${creatorDisplay}`;
+                    
+                    // If modified by different user, show that too
+                    if (modifiedBy && modifiedBy !== createdBy) {
+                        const modifierDisplay = modifiedBy.substring(0, 8) + '...';
+                        creatorInfo += ` | Modified by: ${modifierDisplay}`;
+                    }
+                } else {
+                    // Fallback for local plans without creator info
+                    creatorInfo = 'Created locally';
+                }
+
                 return `
                     <div class="jira-issue-item" onclick="selectSavedPlan(${index})" style="position: relative;" data-plan-id="${plan.id}" data-source="${plan.source}">
                         <button class="btn-icon btn-icon-delete" onclick="event.stopPropagation(); deleteSavedPlan(${index})" title="Delete Plan" style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;">
@@ -1491,11 +1700,14 @@ async function openLoadPlanModal() {
                             </div>
                         </div>
                         ${idReferenceText ? `<div class="jira-issue-summary" style="font-weight: 500; color: #319795; margin-bottom: 0.25rem;">${idReferenceText}</div>` : ''}
-                        <div class="jira-issue-summary">Coverage: ${plan.coverage}% | Test Cases: ${plan.minCases || 0}-${plan.maxCases || 0}</div>
+                        <div class="jira-issue-summary">Coverage: ${plan.coverage_percentage || plan.coverage || 0}% | Test Cases: ${plan.min_test_cases || plan.minCases || 0}-${plan.max_test_cases || plan.maxCases || 0}</div>
+                        <div class="jira-issue-summary" style="font-weight: 500; color: #4a5568; font-size: 0.8rem; margin-bottom: 0.25rem;">
+                            👤 ${creatorInfo}
+                        </div>
                         <div class="jira-issue-description" style="font-size: 0.75rem; color: #a0aec0;">
                             Saved: ${formattedDate}
-                            ${plan.lastModified && plan.lastModified !== plan.createdAt ? 
-                                ` | Modified: ${new Date(plan.lastModified).toLocaleDateString()}` : ''}
+                            ${lastModifiedDate && lastModifiedDate !== createdDateStr ? 
+                                ` | Modified: ${new Date(lastModifiedDate).toLocaleDateString()}` : ''}
                         </div>
                     </div>
                 `;
@@ -1550,21 +1762,25 @@ function loadSelectedPlan() {
         return;
     }
     
-    // Populate form fields
+    // Populate form fields - handle both server format and local format
+    const coverage = plan.coverage_percentage || plan.coverage || 80;
+    const minCases = plan.min_test_cases || plan.minCases || 5;
+    const maxCases = plan.max_test_cases || plan.maxCases || 15;
+    
     document.getElementById('plan-title').value = plan.title;
     document.getElementById('plan-id').value = plan.id || '';
     document.getElementById('plan-reference').value = plan.reference || '';
     document.getElementById('requirements').value = plan.requirements;
-    document.getElementById('coverage').value = plan.coverage;
-    document.getElementById('coverage-value').textContent = plan.coverage + '%';
-    document.getElementById('min-cases').value = plan.minCases;
-    document.getElementById('min-cases-value').textContent = plan.minCases;
-    document.getElementById('max-cases').value = plan.maxCases;
-    document.getElementById('max-cases-value').textContent = plan.maxCases;
+    document.getElementById('coverage').value = coverage;
+    document.getElementById('coverage-value').textContent = coverage + '%';
+    document.getElementById('min-cases').value = minCases;
+    document.getElementById('min-cases-value').textContent = minCases;
+    document.getElementById('max-cases').value = maxCases;
+    document.getElementById('max-cases-value').textContent = maxCases;
     
     // Update dual slider display
-    const minPercent = ((plan.minCases - 1) / (20 - 1)) * 100;
-    const maxPercent = ((plan.maxCases - 1) / (20 - 1)) * 100;
+    const minPercent = ((minCases - 1) / (20 - 1)) * 100;
+    const maxPercent = ((maxCases - 1) / (20 - 1)) * 100;
     const sliderRange = document.getElementById('slider-range');
     sliderRange.style.left = minPercent + '%';
     sliderRange.style.width = (maxPercent - minPercent) + '%';
@@ -1577,6 +1793,12 @@ function loadSelectedPlan() {
     
     // Ensure the current plan has the latest test cases
     currentTestPlan.testCases = [...testCases];
+    
+    // IMPORTANT: Ensure backendId is set for server plans to enable updates
+    if (plan.source === 'server' && (plan.plan_id || plan.id)) {
+        currentTestPlan.backendId = plan.plan_id || plan.id;
+        console.log('🔧 Set backendId for server plan:', currentTestPlan.backendId);
+    }
     
     console.log('📂 Loading plan:', plan.title);
     console.log('📋 Test cases found:', testCases.length);
@@ -1592,15 +1814,34 @@ function loadSelectedPlan() {
     displayTestCases();
     
     // Restore chat history if it exists
-    if (plan.chatHistory && plan.chatHistory.length > 0) {
+    console.log('🔍 Checking for chat history in loaded plan:', plan);
+    console.log('   plan.chatHistory:', plan.chatHistory);
+    console.log('   plan.chat_messages:', plan.chat_messages);
+    console.log('   Type of chatHistory:', typeof plan.chatHistory);
+    console.log('   Type of chat_messages:', typeof plan.chat_messages);
+    console.log('   Array.isArray(chatHistory):', Array.isArray(plan.chatHistory));
+    console.log('   Array.isArray(chat_messages):', Array.isArray(plan.chat_messages));
+    
+    // Check both chatHistory (localStorage format) and chat_messages (server format)
+    const chatHistoryToRestore = plan.chatHistory || plan.chat_messages;
+    
+    console.log('🔍 Final chatHistoryToRestore:', chatHistoryToRestore);
+    console.log('   Type:', typeof chatHistoryToRestore);
+    console.log('   Length:', chatHistoryToRestore ? chatHistoryToRestore.length : 'undefined');
+    
+    if (chatHistoryToRestore && Array.isArray(chatHistoryToRestore) && chatHistoryToRestore.length > 0) {
+        console.log('💬 Restoring chat history:', chatHistoryToRestore);
         const chatMessages = document.getElementById('chat-messages');
         chatMessages.innerHTML = ''; // Clear existing messages
         
-        plan.chatHistory.forEach(msg => {
+        chatHistoryToRestore.forEach((msg, index) => {
+            console.log(`   Processing message ${index}:`, msg);
             const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${msg.type}`;
+            // Handle both formats: {type: 'user', content: '...'} and {message_type: 'user', content: '...'}
+            const messageType = msg.type || msg.message_type || 'user';
+            messageDiv.className = `chat-message ${messageType}`;
             
-            const avatar = msg.type === 'user' ? sessionStorage.getItem('username').charAt(0).toUpperCase() : 'AI';
+            const avatar = messageType === 'user' ? sessionStorage.getItem('username').charAt(0).toUpperCase() : 'AI';
             
             messageDiv.innerHTML = `
                 <div class="message-avatar">${avatar}</div>
@@ -1614,7 +1855,10 @@ function loadSelectedPlan() {
         
         // Scroll to bottom of chat
         chatMessages.scrollTop = chatMessages.scrollHeight;
+        console.log('✅ Chat history restored successfully');
     } else {
+        console.log('❌ No valid chat history found - resetting to default message');
+        console.log('   Reason: chatHistoryToRestore =', chatHistoryToRestore);
         // Reset chat to initial state if no history
         const chatMessages = document.getElementById('chat-messages');
         chatMessages.innerHTML = `

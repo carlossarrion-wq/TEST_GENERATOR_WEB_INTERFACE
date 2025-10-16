@@ -290,15 +290,15 @@
             </div>
 
             <div class="credentials-form">
-                <h2>Sign In</h2>
-                <p>Enter your credentials to access the test plan generator.</p>
+                <h2>Sign In with AWS Credentials</h2>
+                <p>Enter your AWS Access Key and Secret Key to access the test plan generator.</p>
                 
                 <div class="form-group">
-                    <input type="text" id="username" class="form-control" placeholder="Username" autocomplete="username">
+                    <input type="text" id="access-key" class="form-control" placeholder="AWS Access Key (e.g., AKIA...)" autocomplete="username">
                 </div>
                 
                 <div class="form-group">
-                    <input type="password" id="password" class="form-control" placeholder="Password" autocomplete="current-password">
+                    <input type="password" id="secret-key" class="form-control" placeholder="AWS Secret Key" autocomplete="current-password">
                 </div>
                 
                 <button id="login-btn" class="login-button" onclick="login()">
@@ -317,18 +317,18 @@
     </div>
 
     <script>
-        // Simple login validation (for mockup purposes)
-        function login() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
+        // AWS Authentication with API
+        async function login() {
+            const accessKey = document.getElementById('access-key').value.trim();
+            const secretKey = document.getElementById('secret-key').value.trim();
             const loginBtn = document.getElementById('login-btn');
             
             // Hide any existing errors
             hideError();
             
             // Validation
-            if (!username || !password) {
-                showError('Please enter both username and password');
+            if (!accessKey || !secretKey) {
+                showError('Please enter both AWS Access Key and Secret Key');
                 return;
             }
             
@@ -336,28 +336,74 @@
             loginBtn.disabled = true;
             loginBtn.innerHTML = `
                 <div class="loading-spinner"></div>
-                Signing in...
+                Authenticating with AWS...
             `;
             
-            // Simulate authentication (in real app, this would call an API)
-            setTimeout(() => {
-                // For mockup, accept any credentials
-                sessionStorage.setItem('user_authenticated', 'true');
-                sessionStorage.setItem('username', username);
+            try {
+                // Call authentication API
+                const response = await fetch('https://2xlh113423.execute-api.eu-west-1.amazonaws.com/prod/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        access_key: accessKey,
+                        secret_key: secretKey
+                    })
+                });
                 
-                // Success feedback
-                loginBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Success! Redirecting...
-                `;
+                const data = await response.json();
                 
-                // Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
-            }, 1500);
+                if (response.ok && data.session_token) {
+                    // Store authentication data
+                    sessionStorage.setItem('user_authenticated', 'true');
+                    sessionStorage.setItem('session_token', data.session_token);
+                    sessionStorage.setItem('access_key', data.user.access_key);
+                    sessionStorage.setItem('user_permissions', JSON.stringify(data.user.permissions));
+                    sessionStorage.setItem('expires_at', data.expires_at);
+                    
+                    // Store AWS user info if available
+                    if (data.user.aws_user_info) {
+                        sessionStorage.setItem('aws_user_info', JSON.stringify(data.user.aws_user_info));
+                    }
+                    
+                    // Success feedback
+                    loginBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Authentication successful! Redirecting...
+                    `;
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                    
+                } else {
+                    // Authentication failed
+                    showError(data.message || 'Authentication failed. Please check your AWS credentials.');
+                    resetLoginButton();
+                }
+                
+            } catch (error) {
+                console.error('Authentication error:', error);
+                showError('Network error. Please check your connection and try again.');
+                resetLoginButton();
+            }
+        }
+        
+        // Reset login button to original state
+        function resetLoginButton() {
+            const loginBtn = document.getElementById('login-btn');
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
+                Sign In
+            `;
         }
         
         // Show error message
@@ -385,16 +431,25 @@
         // Check if already logged in
         document.addEventListener('DOMContentLoaded', function() {
             if (sessionStorage.getItem('user_authenticated') === 'true') {
-                window.location.href = 'index.html';
+                // Check if session is still valid
+                const expiresAt = parseInt(sessionStorage.getItem('expires_at'));
+                const currentTime = Math.floor(Date.now() / 1000);
+                
+                if (expiresAt && currentTime < expiresAt) {
+                    window.location.href = 'index.html';
+                } else {
+                    // Session expired, clear storage
+                    sessionStorage.clear();
+                }
             }
             
             // Focus on first input field
-            document.getElementById('username').focus();
+            document.getElementById('access-key').focus();
         });
         
         // Clear error when user starts typing
-        document.getElementById('username').addEventListener('input', hideError);
-        document.getElementById('password').addEventListener('input', hideError);
+        document.getElementById('access-key').addEventListener('input', hideError);
+        document.getElementById('secret-key').addEventListener('input', hideError);
     </script>
 </body>
 </html>

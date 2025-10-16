@@ -11,6 +11,7 @@ from db_utils import (
     validate_required_fields, generate_plan_id, generate_case_id,
     get_test_plan_by_plan_id, handle_cors_preflight
 )
+from auth_service import validate_request_auth
 
 # Initialize AWS Bedrock clients
 try:
@@ -33,6 +34,14 @@ def lambda_handler(event, context):
     if event['httpMethod'] == 'OPTIONS':
         return handle_cors_preflight()
     
+    # Validate authentication for all requests
+    is_valid, user_info, auth_error = validate_request_auth(event)
+    if not is_valid:
+        return auth_error
+    
+    # Log authenticated user for debugging
+    print(f"🔐 Authenticated AI request from user: {user_info['access_key']}")
+    
     try:
         method = event['httpMethod']
         path_parameters = event.get('pathParameters') or {}
@@ -46,7 +55,7 @@ def lambda_handler(event, context):
         action = path_parameters.get('action', body.get('action'))
         
         if action == 'generate-plan':
-            return generate_test_plan_with_ai(body)
+            return generate_test_plan_with_ai(body, user_info)
         elif action == 'generate-cases':
             if 'plan_id' not in path_parameters:
                 return create_error_response(400, "Plan ID is required for generating cases", "ValidationError")
@@ -68,7 +77,7 @@ def lambda_handler(event, context):
         print(f"Unexpected error: {str(e)}")
         return create_error_response(500, "Internal server error", "InternalServerError")
 
-def generate_test_plan_with_ai(data):
+def generate_test_plan_with_ai(data, user_info=None):
     """Generate a complete test plan with AI based on requirements"""
     try:
         # Validate required fields
@@ -106,18 +115,25 @@ def generate_test_plan_with_ai(data):
         plan_id = generate_plan_id()
         
         with DatabaseConnection() as cursor:
-            # Insert test plan
+            # Get user ID for audit trail
+            current_user_id = None
+            if user_info and user_info.get('id'):
+                current_user_id = user_info['id']
+            
+            # Insert test plan with user audit information
             cursor.execute("""
                 INSERT INTO test_plans (
                     plan_id, title, reference, requirements, coverage_percentage,
-                    min_test_cases, max_test_cases, selected_test_types, status
+                    min_test_cases, max_test_cases, selected_test_types, status,
+                    created_by_user_id, modified_by_user_id
                 ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
             """, (
                 plan_id, title, reference, requirements,
                 coverage_percentage, min_test_cases, max_test_cases,
-                json.dumps(selected_test_types), 'draft'
+                json.dumps(selected_test_types), 'draft',
+                current_user_id, current_user_id  # Both created and modified by the same user initially
             ))
             
             test_plan_internal_id = cursor.lastrowid

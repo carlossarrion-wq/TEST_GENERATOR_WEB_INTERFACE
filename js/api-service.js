@@ -10,10 +10,41 @@ class APIService {
         };
     }
 
+    // Get authentication headers
+    getAuthHeaders() {
+        const sessionToken = sessionStorage.getItem('session_token');
+        if (sessionToken) {
+            return {
+                'Authorization': `Bearer ${sessionToken}`
+            };
+        }
+        return {};
+    }
+
+    // Check if user is authenticated
+    isAuthenticated() {
+        const sessionToken = sessionStorage.getItem('session_token');
+        const expiresAt = parseInt(sessionStorage.getItem('expires_at'));
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        return sessionToken && expiresAt && currentTime < expiresAt;
+    }
+
+    // Redirect to login if not authenticated
+    checkAuthAndRedirect() {
+        if (!this.isAuthenticated()) {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+            return false;
+        }
+        return true;
+    }
+
     // Generic HTTP request method with error handling
     async request(endpoint, method = 'GET', data = null, additionalHeaders = {}) {
         const url = `${this.baseURL}${endpoint}`;
-        const headers = { ...this.defaultHeaders, ...additionalHeaders };
+        const authHeaders = this.getAuthHeaders();
+        const headers = { ...this.defaultHeaders, ...authHeaders, ...additionalHeaders };
         
         const config = {
             method,

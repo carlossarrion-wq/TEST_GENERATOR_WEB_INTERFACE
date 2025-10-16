@@ -7,6 +7,52 @@
 USE testplangenerator;
 
 -- =======================================================
+-- Table: auth_users
+-- Authentication users with AWS-style Access Key/Secret Key
+-- =======================================================
+CREATE TABLE auth_users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    access_key VARCHAR(128) UNIQUE NOT NULL,      -- AWS-style access key (e.g., AKIA...)
+    secret_key_hash VARCHAR(256) NOT NULL,        -- SHA-256 hash of secret key
+    permissions JSON DEFAULT NULL,                -- User permissions array
+    is_active BOOLEAN DEFAULT TRUE,               -- Account status
+    last_login_at TIMESTAMP NULL,                 -- Last successful login
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    
+    -- Indexes for performance
+    INDEX idx_access_key (access_key),
+    INDEX idx_is_active (is_active),
+    INDEX idx_is_deleted (is_deleted),
+    INDEX idx_last_login (last_login_at)
+);
+
+-- =======================================================
+-- Table: auth_sessions
+-- Active authentication sessions
+-- =======================================================
+CREATE TABLE auth_sessions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,                      -- Foreign key to auth_users
+    session_token TEXT NOT NULL,                  -- Encrypted session token
+    expires_at TIMESTAMP NOT NULL,                -- Session expiration time
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Foreign key constraint
+    FOREIGN KEY (user_id) REFERENCES auth_users(id) ON DELETE CASCADE,
+    
+    -- Indexes for performance
+    INDEX idx_user_id (user_id),
+    INDEX idx_expires_at (expires_at),
+    INDEX idx_session_token (session_token(255)),  -- Index first 255 chars of token
+    
+    -- Unique constraint to ensure one active session per user
+    UNIQUE KEY unique_user_session (user_id)
+);
+
+-- =======================================================
 -- Table: test_plans
 -- Main table for storing test plans
 -- =======================================================
@@ -21,15 +67,23 @@ CREATE TABLE test_plans (
     max_test_cases TINYINT DEFAULT 15,            -- Maximum number of test cases
     selected_test_types JSON,                      -- Array of test types ["unit", "integration", etc.]
     status ENUM('draft', 'active', 'completed', 'archived') DEFAULT 'draft',
+    created_by_user_id BIGINT,                    -- User who created this plan
+    modified_by_user_id BIGINT,                   -- User who last modified this plan
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_deleted BOOLEAN DEFAULT FALSE,
+    
+    -- Foreign key constraints
+    FOREIGN KEY (created_by_user_id) REFERENCES auth_users(id) ON DELETE SET NULL,
+    FOREIGN KEY (modified_by_user_id) REFERENCES auth_users(id) ON DELETE SET NULL,
     
     -- Indexes for performance
     INDEX idx_plan_id (plan_id),
     INDEX idx_status (status),
     INDEX idx_created_at (created_at),
-    INDEX idx_is_deleted (is_deleted)
+    INDEX idx_is_deleted (is_deleted),
+    INDEX idx_created_by (created_by_user_id),
+    INDEX idx_modified_by (modified_by_user_id)
 );
 
 -- =======================================================

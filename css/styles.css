@@ -21,8 +21,20 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    text-align: center;
     position: relative;
+}
+
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-main {
+    text-align: left;
 }
 
 .header h1 {
@@ -41,6 +53,52 @@ body {
     margin: 0;
 }
 
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.user-details {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #319795 0%, #2c7a7b 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(49, 151, 149, 0.3);
+}
+
+.user-avatar svg {
+    width: 24px;
+    height: 24px;
+}
+
+.user-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 1rem;
+}
+
+.user-role {
+    font-size: 0.85rem;
+    color: #718096;
+}
+
 .logout-btn {
     background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
     color: white;
@@ -51,17 +109,13 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(248, 113, 113, 0.3);
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .logout-btn:hover {
-    transform: translateY(-50%) translateY(-2px);
+    transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(248, 113, 113, 0.4);
 }
 
