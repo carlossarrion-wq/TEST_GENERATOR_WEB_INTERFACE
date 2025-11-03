@@ -168,23 +168,22 @@ function generateTestPlanId() {
     return `TP-${timestamp}-${random}`;
 }
 
-// Generate test plan using AI API
+// Generate test plan
 async function generateTestPlan() {
     const title = document.getElementById('plan-title').value.trim();
     const requirements = document.getElementById('requirements').value.trim();
-    const coverage = parseInt(document.getElementById('coverage').value);
+    const coverage = document.getElementById('coverage').value;
     const minCases = parseInt(document.getElementById('min-cases').value);
     const maxCases = parseInt(document.getElementById('max-cases').value);
-    const testType = document.getElementById('selected-test-type').value;
     
     // Validation
     if (!title) {
-        showErrorMessage('Please enter a test plan title');
+        alert('Please enter a test plan title');
         return;
     }
     
     if (!requirements) {
-        showErrorMessage('Please enter functional requirements');
+        alert('Please enter functional requirements');
         return;
     }
     
@@ -196,117 +195,46 @@ async function generateTestPlan() {
     const btn = event.target;
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<div class="loading-spinner"></div> Generating with AI...';
+    btn.innerHTML = '<div class="loading-spinner"></div> Generating test plan...';
     
-    try {
-        // Get reference if it exists
-        const reference = document.getElementById('plan-reference').value.trim();
-        
-        // Prepare data for AI generation
-        const aiRequirements = {
-            title: title,
-            requirements: requirements,
-            coverage_percentage: coverage,
-            min_test_cases: minCases,
-            max_test_cases: maxCases,
-            test_type: testType,
-            reference: reference || null
-        };
-        
-        console.log('🤖 Generating test plan with AI...', aiRequirements);
-        
-        // Call AI generation API
-        const response = await apiService.generateTestPlanWithAI(aiRequirements);
-        
-        if (response.test_plan && response.test_cases) {
-            // Create test plan from AI response
-            currentTestPlan = {
-                id: planId,
-                title: title,
-                reference: reference || '',
-                requirements: requirements,
-                coverage: coverage,
-                minCases: minCases,
-                maxCases: maxCases,
-                testType: testType,
-                testCases: response.test_cases,
-                createdAt: new Date().toISOString(),
-                aiGenerated: true
-            };
-            
-            // Store test cases globally
-            testCases = response.test_cases;
-            
-            // Save the test plan to backend
-            try {
-                const savedPlan = await apiService.createTestPlan(currentTestPlan);
-                console.log('✅ Test plan saved to backend:', savedPlan);
-                currentTestPlan.backendId = savedPlan.id; // Store backend ID
-            } catch (saveError) {
-                console.warn('⚠️ Could not save to backend, but continuing with local plan:', saveError.message);
-                showWarningMessage('Test plan generated but could not be saved to server. It will be saved locally.');
-            }
-            
-        } else {
-            throw new Error('Invalid response format from AI service');
-        }
-        
-        // Display results
-        displayTestCases();
-        
-        // Show results, chat, and actions sections
-        document.getElementById('results-section').style.display = 'block';
-        document.getElementById('chat-section').style.display = 'block';
-        document.getElementById('actions-section').style.display = 'block';
-        
-        // Scroll to results
-        document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
-        
-        showSuccessMessage(`Generated ${testCases.length} test cases successfully!`);
-        
-    } catch (error) {
-        console.error('❌ Error generating test plan:', error);
-        
-        // Fallback to mock generation if API fails
-        console.log('🔄 Falling back to mock generation...');
-        testCases = generateMockTestCases(requirements, minCases, maxCases);
-        
-        const reference = document.getElementById('plan-reference').value.trim();
-        currentTestPlan = {
-            id: planId,
-            title: title,
-            reference: reference || '',
-            requirements: requirements,
-            coverage: coverage,
-            minCases: minCases,
-            maxCases: maxCases,
-            testType: testType,
-            testCases: testCases,
-            createdAt: new Date().toISOString(),
-            aiGenerated: false
-        };
-        
-        // Display results with fallback
-        displayTestCases();
-        document.getElementById('results-section').style.display = 'block';
-        document.getElementById('chat-section').style.display = 'block';
-        document.getElementById('actions-section').style.display = 'block';
-        document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
-        
-        // Show error message but continue with mock data
-        if (error.isDatabaseError && error.isDatabaseError()) {
-            showWarningMessage('AI service is initializing. Generated test plan using local algorithms.');
-        } else {
-            showWarningMessage(`AI generation failed: ${error.message}. Using fallback generation.`);
-        }
-    } finally {
-        // Reset button
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-        
-        // Update button state (disable since we now have test cases)
-        updateGenerateButtonState();
-    }
+    // Simulate AI generation (in real app, this would call Lambda function)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Generate mock test cases
+    testCases = generateMockTestCases(requirements, minCases, maxCases);
+    
+    // Get reference if it exists
+    const reference = document.getElementById('plan-reference').value.trim();
+    
+    currentTestPlan = {
+        id: planId,
+        title: title,
+        reference: reference || '',
+        requirements: requirements,
+        coverage: coverage,
+        minCases: minCases,
+        maxCases: maxCases,
+        testCases: testCases,
+        createdAt: new Date().toISOString()
+    };
+    
+    // Display results
+    displayTestCases();
+    
+    // Show results, chat, and actions sections
+    document.getElementById('results-section').style.display = 'block';
+    document.getElementById('chat-section').style.display = 'block';
+    document.getElementById('actions-section').style.display = 'block';
+    
+    // Scroll to results
+    document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+    
+    // Reset button
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+    
+    // Update button state (disable since we now have test cases)
+    updateGenerateButtonState();
 }
 
 // Generate mock test cases (simulates AI generation)
@@ -475,17 +403,12 @@ window.onclick = function(event) {
     }
 }
 
-// Send chat message using AI API
+// Send chat message
 async function sendChatMessage() {
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
     
     if (!message) return;
-    
-    if (!currentTestPlan) {
-        showErrorMessage('Please generate a test plan first before using chat.');
-        return;
-    }
     
     // Add user message to chat
     addChatMessage(message, 'user');
@@ -501,52 +424,23 @@ async function sendChatMessage() {
     loadingDiv.innerHTML = `
         <div class="message-avatar">AI</div>
         <div class="message-content">
-            <div class="loading-spinner"></div> AI is analyzing your request...
+            <div class="loading-spinner"></div> Processing your request...
         </div>
     `;
     chatMessages.appendChild(loadingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
-    try {
-        let response;
-        
-        // Try to use AI chat API
-        if (currentTestPlan.backendId) {
-            console.log('💬 Sending message to AI chat API...', message);
-            const apiResponse = await apiService.chatWithAI(currentTestPlan.backendId, message);
-            
-            if (apiResponse.response || apiResponse.message) {
-                response = apiResponse.response || apiResponse.message;
-                console.log('✅ Got AI response:', response);
-            } else {
-                throw new Error('Invalid response format from AI chat service');
-            }
-        } else {
-            // Fallback to local chat if no backend ID
-            throw new Error('No backend plan ID available for AI chat');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error with AI chat:', error);
-        
-        // Fallback to mock response
-        response = generateChatResponse(message);
-        
-        if (error.isDatabaseError && error.isDatabaseError()) {
-            // Don't show error for database initialization
-            console.log('🔄 AI service initializing, using local chat response');
-        } else {
-            showWarningMessage('AI chat service unavailable. Using local responses.');
-        }
-    } finally {
-        // Remove loading message
-        if (loadingDiv.parentNode) {
-            loadingDiv.remove();
-        }
-        
-        // Add AI response
-        addChatMessage(response, 'assistant');
-    }
+    // Simulate AI response (in real app, this would call Lambda function)
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Remove loading message
+    loadingDiv.remove();
+    
+    // Generate response based on message
+    let response = generateChatResponse(message);
+    
+    // Add AI response
+    addChatMessage(response, 'assistant');
 }
 
 // Generate chat response (simulates AI)
@@ -585,107 +479,35 @@ function addChatMessage(message, type) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Save test plan using API
-async function saveTestPlan() {
+// Save test plan
+function saveTestPlan() {
     if (!currentTestPlan) {
-        showErrorMessage('No test plan to save');
+        alert('No test plan to save');
         return;
     }
     
-    // Show loading state
-    const btn = event.target;
-    const originalHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<div class="loading-spinner"></div> Saving...';
-    
-    try {
-        // Get chat history
-        const chatMessages = document.getElementById('chat-messages');
-        const chatHistory = [];
-        chatMessages.querySelectorAll('.chat-message').forEach(msg => {
-            const isAssistant = msg.classList.contains('assistant');
-            const content = msg.querySelector('.message-content p').innerHTML.replace(/<br>/g, '\n');
-            chatHistory.push({
-                type: isAssistant ? 'assistant' : 'user',
-                content: content
-            });
+    // Get chat history
+    const chatMessages = document.getElementById('chat-messages');
+    const chatHistory = [];
+    chatMessages.querySelectorAll('.chat-message').forEach(msg => {
+        const isAssistant = msg.classList.contains('assistant');
+        const content = msg.querySelector('.message-content p').innerHTML.replace(/<br>/g, '\n');
+        chatHistory.push({
+            type: isAssistant ? 'assistant' : 'user',
+            content: content
         });
-        
-        // Update current test plan with latest data
-        currentTestPlan.chatHistory = chatHistory;
-        currentTestPlan.lastModified = new Date().toISOString();
-        currentTestPlan.testCases = [...testCases]; // Ensure latest test cases are included (deep copy)
-        
-        console.log('💾 Saving plan with test cases:', testCases.length);
-        console.log('🔍 Current test plan structure:', currentTestPlan);
-        
-        let savedPlan;
-        
-        // Check if this plan already exists in backend
-        if (currentTestPlan.backendId) {
-            // Update existing plan
-            console.log('📝 Updating existing test plan in backend...', currentTestPlan.backendId);
-            savedPlan = await apiService.updateTestPlan(currentTestPlan.backendId, currentTestPlan);
-            console.log('✅ Test plan updated in backend:', savedPlan);
-        } else {
-            // Create new plan
-            console.log('💾 Saving new test plan to backend...', currentTestPlan);
-            savedPlan = await apiService.createTestPlan(currentTestPlan);
-            currentTestPlan.backendId = savedPlan.id; // Store backend ID for future updates
-            console.log('✅ Test plan saved to backend:', savedPlan);
-        }
-        
-        // Also save to localStorage as backup
-        const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
-        
-        // Check if plan already exists in localStorage (by ID)
-        const existingIndex = savedPlans.findIndex(plan => plan.id === currentTestPlan.id);
-        
-        if (existingIndex >= 0) {
-            // Update existing plan in localStorage
-            savedPlans[existingIndex] = { ...currentTestPlan };
-        } else {
-            // Add new plan to localStorage
-            savedPlans.push({ ...currentTestPlan });
-        }
-        
-        localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
-        
-        showSuccessMessage('Test plan saved successfully to server and local storage!');
-        
-    } catch (error) {
-        console.error('❌ Error saving test plan to backend:', error);
-        
-        // Fallback to localStorage only
-        try {
-            const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
-            const existingIndex = savedPlans.findIndex(plan => plan.id === currentTestPlan.id);
-            
-            if (existingIndex >= 0) {
-                savedPlans[existingIndex] = { ...currentTestPlan };
-            } else {
-                savedPlans.push({ ...currentTestPlan });
-            }
-            
-            localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
-            
-            if (error.isDatabaseError && error.isDatabaseError()) {
-                showWarningMessage('Test plan saved locally. Server is initializing - data will sync when available.');
-            } else {
-                const errorMessage = error.message || error.error || (typeof error === 'string' ? error : 'Unknown error');
-                showWarningMessage(`Could not save to server: ${errorMessage}. Test plan saved locally instead.`);
-            }
-            
-        } catch (localError) {
-            console.error('❌ Error saving test plan locally:', localError);
-            showErrorMessage('Failed to save test plan both to server and locally. Please try again.');
-        }
-        
-    } finally {
-        // Reset button
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-    }
+    });
+    
+    // Add chat history to current test plan
+    currentTestPlan.chatHistory = chatHistory;
+    currentTestPlan.lastModified = new Date().toISOString();
+    
+    // Save to localStorage
+    const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
+    savedPlans.push(currentTestPlan);
+    localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
+    
+    alert('Test plan saved successfully!');
 }
 
 // Export to CSV
@@ -997,61 +819,18 @@ async function openJiraImportModal() {
     
     modal.classList.add('show');
     
-    try {
-        // Call Lambda API to fetch Jira issues
-        const response = await fetch('https://2xlh113423.execute-api.eu-west-1.amazonaws.com/dev/jira/import', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                projectKey: 'PDDSE2',
-                maxResults: 100
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Failed to fetch Jira issues');
-        }
-        
-        // Transform Lambda response to match our format
-        allJiraIssues = data.issues.map(issue => ({
-            key: issue.key,
-            type: issue.issueType ? issue.issueType.toLowerCase() : 'task',
-            summary: issue.summary,
-            description: issue.description || 'No description provided',
-            status: issue.status,
-            priority: issue.priority,
-            assignee: issue.assignee ? (issue.assignee.displayName || issue.assignee) : 'Unassigned'
-        }));
-        
-        filteredJiraIssues = [...allJiraIssues];
-        
-        // Populate assignee filter
-        populateAssigneeFilter();
-        
-        // Display first page of issues
-        loadMoreJiraIssues();
-        
-    } catch (error) {
-        console.error('Error fetching Jira issues:', error);
-        issuesList.innerHTML = `
-            <div class="jira-empty-state">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-                <h4>Error loading Jira issues</h4>
-                <p>${error.message}</p>
-                <button class="btn-primary" onclick="openJiraImportModal()" style="margin-top: 1rem;">Retry</button>
-            </div>
-        `;
-    }
+    // Simulate fetching Jira issues (in real app, this would call Lambda/Jira API)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Generate mock Jira issues
+    allJiraIssues = generateMockJiraIssues();
+    filteredJiraIssues = [...allJiraIssues];
+    
+    // Populate assignee filter
+    populateAssigneeFilter();
+    
+    // Display first page of issues
+    loadMoreJiraIssues();
 }
 
 // Generate comprehensive mock Jira issues
@@ -1316,35 +1095,22 @@ function displayJiraIssues() {
     issuesList.innerHTML = displayedJiraIssues.map(issue => {
         const statusClass = issue.status.toLowerCase().replace(/\s+/g, '-');
         const priorityClass = issue.priority.toLowerCase();
-        
-        // Handle assignee initials safely
-        let assigneeInitials = 'U';
-        if (issue.assignee && issue.assignee !== 'Unassigned') {
-            const nameParts = issue.assignee.split(' ').filter(part => part.length > 0);
-            assigneeInitials = nameParts.map(n => n[0].toUpperCase()).join('');
-        }
-        
-        // Escape HTML in description to prevent XSS
-        const escapeHtml = (text) => {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        };
+        const assigneeInitials = issue.assignee === 'Unassigned' ? 'U' : issue.assignee.split(' ').map(n => n[0]).join('');
         
         return `
             <div class="jira-issue-item" onclick="selectJiraIssue('${issue.key}')">
                 <div class="jira-issue-header">
-                    <span class="jira-issue-key">${escapeHtml(issue.key)}</span>
-                    <span class="jira-issue-type ${issue.type}">${escapeHtml(issue.type)}</span>
+                    <span class="jira-issue-key">${issue.key}</span>
+                    <span class="jira-issue-type ${issue.type}">${issue.type}</span>
                 </div>
-                <div class="jira-issue-summary">${escapeHtml(issue.summary)}</div>
-                <div class="jira-issue-description">${escapeHtml(issue.description)}</div>
+                <div class="jira-issue-summary">${issue.summary}</div>
+                <div class="jira-issue-description">${issue.description}</div>
                 <div class="jira-issue-meta">
-                    <span class="jira-issue-status ${statusClass}">${escapeHtml(issue.status)}</span>
-                    <span class="jira-issue-priority ${priorityClass}">${escapeHtml(issue.priority)}</span>
+                    <span class="jira-issue-status ${statusClass}">${issue.status}</span>
+                    <span class="jira-issue-priority ${priorityClass}">${issue.priority}</span>
                     <div class="jira-issue-assignee">
                         <div class="jira-issue-avatar">${assigneeInitials}</div>
-                        <span>${escapeHtml(issue.assignee)}</span>
+                        <span>${issue.assignee}</span>
                     </div>
                 </div>
             </div>
@@ -1421,156 +1187,52 @@ function selectTestType(type) {
 // Load Plan functionality
 let selectedSavedPlan = null;
 
-// Open Load Plan Modal with API integration
-async function openLoadPlanModal() {
+// Open Load Plan Modal
+function openLoadPlanModal() {
     const modal = document.getElementById('load-plan-modal');
     const plansList = document.getElementById('saved-plans-list');
     
-    // Show loading
-    plansList.innerHTML = '<div class="jira-loading"><div class="loading-spinner"></div><p style="margin-top: 1rem;">Loading saved test plans...</p></div>';
+    // Get saved plans from localStorage
+    const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
     
-    modal.classList.add('show');
-    
-    try {
-        let allSavedPlans = [];
-        let serverPlans = [];
-        
-        // Try to load plans from server
-        try {
-            console.log('📥 Loading test plans from server...');
-            const response = await apiService.getTestPlans(100, 0); // Load up to 100 plans
+    if (savedPlans.length === 0) {
+        plansList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #718096;">No saved test plans found.</div>';
+    } else {
+        // Display saved plans
+        plansList.innerHTML = savedPlans.map((plan, index) => {
+            const date = new Date(plan.createdAt);
+            const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            const numTestCases = plan.testCases ? plan.testCases.length : 0;
             
-            if (response.plans && Array.isArray(response.plans)) {
-                serverPlans = response.plans;
-                console.log('✅ Loaded', serverPlans.length, 'plans from server');
-                
-                // For server plans, also try to load their test cases if needed
-                for (let plan of serverPlans) {
-                    if (plan.test_cases_count > 0 && !plan.testCases) {
-                        try {
-                            console.log(`🔍 Loading test cases for plan ${plan.plan_id}...`);
-                            const fullPlan = await apiService.getTestPlan(plan.plan_id);
-                            if (fullPlan.test_cases && fullPlan.test_cases.length > 0) {
-                                plan.testCases = fullPlan.test_cases;
-                                console.log(`✅ Loaded ${fullPlan.test_cases.length} test cases for ${plan.title}`);
-                            }
-                        } catch (caseError) {
-                            console.warn(`⚠️ Could not load test cases for plan ${plan.plan_id}:`, caseError.message);
-                        }
-                    }
-                }
-            } else if (response.length) {
-                // In case the API returns direct array
-                serverPlans = response;
-                console.log('✅ Loaded', serverPlans.length, 'plans from server');
-            }
-        } catch (serverError) {
-            console.warn('⚠️ Could not load plans from server:', serverError.message);
-            if (!serverError.isDatabaseError || !serverError.isDatabaseError()) {
-                showWarningMessage('Could not connect to server. Showing local plans only.');
-            }
-        }
-        
-        // Always load plans from localStorage as backup/supplement
-        const localPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
-        console.log('📱 Loaded', localPlans.length, 'plans from local storage');
-        
-        // Merge server and local plans, avoiding duplicates by ID
-        const planMap = new Map();
-        
-        // Add server plans first (they have priority)
-        serverPlans.forEach(plan => {
+            // Build ID and Reference display
+            let idReferenceText = '';
             if (plan.id) {
-                planMap.set(plan.id, { ...plan, source: 'server' });
+                idReferenceText = `ID: ${plan.id}`;
+                if (plan.reference) {
+                    idReferenceText += ` | Reference: ${plan.reference}`;
+                }
             }
-        });
-        
-        // Add local plans that don't exist on server
-        localPlans.forEach(plan => {
-            if (plan.id && !planMap.has(plan.id)) {
-                planMap.set(plan.id, { ...plan, source: 'local' });
-            } else if (!plan.id) {
-                // Local plans without ID (legacy)
-                const tempId = `local-${Date.now()}-${Math.random()}`;
-                planMap.set(tempId, { ...plan, id: tempId, source: 'local' });
-            }
-        });
-        
-        allSavedPlans = Array.from(planMap.values());
-        
-        // Sort by creation date (newest first)
-        allSavedPlans.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        
-        if (allSavedPlans.length === 0) {
-            plansList.innerHTML = `
-                <div style="text-align: center; padding: 3rem; color: #718096;">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 48px; height: 48px; margin: 0 auto 1rem; opacity: 0.5;">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                    </svg>
-                    <h4 style="margin-bottom: 0.5rem;">No saved test plans found</h4>
-                    <p>Create and save test plans to see them here.</p>
+            
+            return `
+                <div class="jira-issue-item" onclick="selectSavedPlan(${index})" style="position: relative;">
+                    <button class="btn-icon btn-icon-delete" onclick="event.stopPropagation(); deleteSavedPlan(${index})" title="Delete Plan" style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </button>
+                    <div class="jira-issue-header">
+                        <span class="jira-issue-key">${plan.title}</span>
+                        <span class="jira-issue-type story">${numTestCases} test cases</span>
+                    </div>
+                    ${idReferenceText ? `<div class="jira-issue-summary" style="font-weight: 500; color: #319795; margin-bottom: 0.25rem;">${idReferenceText}</div>` : ''}
+                    <div class="jira-issue-summary">Coverage: ${plan.coverage}% | Test Cases: ${plan.minCases}-${plan.maxCases}</div>
+                    <div class="jira-issue-description" style="font-size: 0.75rem; color: #a0aec0;">Saved: ${formattedDate}</div>
                 </div>
             `;
-        } else {
-            // Display saved plans
-            plansList.innerHTML = allSavedPlans.map((plan, index) => {
-                const date = new Date(plan.createdAt);
-                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-                const numTestCases = plan.testCases ? plan.testCases.length : 0;
-                
-                // Build ID and Reference display
-                let idReferenceText = '';
-                if (plan.id) {
-                    idReferenceText = `ID: ${plan.id}`;
-                    if (plan.reference) {
-                        idReferenceText += ` | Reference: ${plan.reference}`;
-                    }
-                }
-                
-                // Add source indicator
-                const sourceIcon = plan.source === 'server' ? 
-                    `<span title="Saved on server" style="color: #48bb78;">☁️</span>` : 
-                    `<span title="Local only" style="color: #ed8936;">💾</span>`;
-                
-                return `
-                    <div class="jira-issue-item" onclick="selectSavedPlan(${index})" style="position: relative;" data-plan-id="${plan.id}" data-source="${plan.source}">
-                        <button class="btn-icon btn-icon-delete" onclick="event.stopPropagation(); deleteSavedPlan(${index})" title="Delete Plan" style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
-                        </button>
-                        <div class="jira-issue-header">
-                            <span class="jira-issue-key">${plan.title}</span>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="jira-issue-type story">${numTestCases} test cases</span>
-                                ${sourceIcon}
-                            </div>
-                        </div>
-                        ${idReferenceText ? `<div class="jira-issue-summary" style="font-weight: 500; color: #319795; margin-bottom: 0.25rem;">${idReferenceText}</div>` : ''}
-                        <div class="jira-issue-summary">Coverage: ${plan.coverage}% | Test Cases: ${plan.minCases || 0}-${plan.maxCases || 0}</div>
-                        <div class="jira-issue-description" style="font-size: 0.75rem; color: #a0aec0;">
-                            Saved: ${formattedDate}
-                            ${plan.lastModified && plan.lastModified !== plan.createdAt ? 
-                                ` | Modified: ${new Date(plan.lastModified).toLocaleDateString()}` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Store plans globally for later use
-            window.currentSavedPlans = allSavedPlans;
-        }
-        
-    } catch (error) {
-        console.error('❌ Error loading saved plans:', error);
-        plansList.innerHTML = `
-            <div style="text-align: center; padding: 2rem; color: #e53e3e;">
-                <h4>Error loading test plans</h4>
-                <p>${error.message}</p>
-                <button class="btn-secondary" onclick="openLoadPlanModal()" style="margin-top: 1rem;">Try Again</button>
-            </div>
-        `;
+        }).join('');
     }
+    
+    modal.classList.add('show');
 }
 
 // Select a saved plan
@@ -1597,9 +1259,9 @@ function loadSelectedPlan() {
         return;
     }
     
-    // Get the current plans list (which includes both server and local plans)
-    const currentPlans = window.currentSavedPlans || [];
-    const plan = currentPlans[selectedSavedPlan];
+    // Get saved plans
+    const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
+    const plan = savedPlans[selectedSavedPlan];
     
     if (!plan) {
         alert('Error loading test plan');
@@ -1627,68 +1289,43 @@ function loadSelectedPlan() {
     document.getElementById('min-cases-value').style.left = minPercent + '%';
     document.getElementById('max-cases-value').style.left = maxPercent + '%';
     
-    // Load test cases - make sure to handle both old and new formats
-    testCases = [...(plan.testCases || [])]; // Deep copy to avoid reference issues
-    currentTestPlan = { ...plan }; // Deep copy of the plan
+    // Load test cases
+    testCases = plan.testCases || [];
+    currentTestPlan = plan;
     
-    // Ensure the current plan has the latest test cases
-    currentTestPlan.testCases = [...testCases];
-    
-    console.log('📂 Loading plan:', plan.title);
-    console.log('📋 Test cases found:', testCases.length);
-    console.log('🔍 Test cases data:', testCases);
-    console.log('📦 Current test plan structure:', currentTestPlan);
-    
-    // Always show results, chat, and actions sections when loading a plan
-    document.getElementById('results-section').style.display = 'block';
-    document.getElementById('chat-section').style.display = 'block';
-    document.getElementById('actions-section').style.display = 'block';
-    
-    // Always call displayTestCases to show the table (even if empty)
-    displayTestCases();
-    
-    // Restore chat history if it exists
-    if (plan.chatHistory && plan.chatHistory.length > 0) {
-        const chatMessages = document.getElementById('chat-messages');
-        chatMessages.innerHTML = ''; // Clear existing messages
+    // Display test cases if they exist
+    if (testCases.length > 0) {
+        displayTestCases();
         
-        plan.chatHistory.forEach(msg => {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${msg.type}`;
-            
-            const avatar = msg.type === 'user' ? sessionStorage.getItem('username').charAt(0).toUpperCase() : 'AI';
-            
-            messageDiv.innerHTML = `
-                <div class="message-avatar">${avatar}</div>
-                <div class="message-content">
-                    <p>${msg.content.replace(/\n/g, '<br>')}</p>
-                </div>
-            `;
-            
-            chatMessages.appendChild(messageDiv);
-        });
+        // Show results, chat, and actions sections
+        document.getElementById('results-section').style.display = 'block';
+        document.getElementById('chat-section').style.display = 'block';
+        document.getElementById('actions-section').style.display = 'block';
         
-        // Scroll to bottom of chat
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    } else {
-        // Reset chat to initial state if no history
-        const chatMessages = document.getElementById('chat-messages');
-        chatMessages.innerHTML = `
-            <div class="chat-message assistant">
-                <div class="message-avatar">AI</div>
-                <div class="message-content">
-                    <p>Test plan loaded successfully! You can now refine it by asking me to:</p>
-                    <ul>
-                        <li>Add specific test cases for edge cases</li>
-                        <li>Include negative testing scenarios</li>
-                        <li>Add performance or security test cases</li>
-                        <li>Modify existing test cases</li>
-                        <li>Remove redundant test cases</li>
-                    </ul>
-                    <p>What would you like to adjust?</p>
-                </div>
-            </div>
-        `;
+        // Restore chat history if it exists
+        if (plan.chatHistory && plan.chatHistory.length > 0) {
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = ''; // Clear existing messages
+            
+            plan.chatHistory.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${msg.type}`;
+                
+                const avatar = msg.type === 'user' ? sessionStorage.getItem('username').charAt(0).toUpperCase() : 'AI';
+                
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">${avatar}</div>
+                    <div class="message-content">
+                        <p>${msg.content.replace(/\n/g, '<br>')}</p>
+                    </div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+            });
+            
+            // Scroll to bottom of chat
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
     
     // Close modal
@@ -1705,60 +1342,30 @@ function loadSelectedPlan() {
 }
 
 // Delete saved plan
-async function deleteSavedPlan(planIndex) {
-    // Get the current plans list (which includes both server and local plans)
-    const currentPlans = window.currentSavedPlans || [];
+function deleteSavedPlan(planIndex) {
+    // Get saved plans
+    const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
     
-    if (planIndex < 0 || planIndex >= currentPlans.length) {
+    if (planIndex < 0 || planIndex >= savedPlans.length) {
         alert('Error: Invalid plan index');
         return;
     }
     
-    const plan = currentPlans[planIndex];
+    const plan = savedPlans[planIndex];
     
     // Confirm deletion
     if (!confirm(`Are you sure you want to delete "${plan.title}"?\n\nThis action cannot be undone.`)) {
         return;
     }
     
-    try {
-        // If plan is from server, try to delete from server first
-        if (plan.source === 'server' && (plan.id || plan.plan_id)) {
-            try {
-                const planIdToDelete = plan.plan_id || plan.id; // Use plan_id if available, fallback to id
-                console.log('🗑️ Deleting plan from server:', planIdToDelete);
-                await apiService.deleteTestPlan(planIdToDelete);
-                console.log('✅ Plan deleted from server');
-                showSuccessMessage(`Plan "${plan.title}" deleted from server successfully`);
-            } catch (serverError) {
-                console.warn('⚠️ Could not delete from server:', serverError.message);
-                showWarningMessage(`Could not delete from server: ${serverError.message}`);
-                // Continue with local deletion even if server deletion fails
-            }
-        }
-        
-        // Remove from localStorage (for local plans or as backup)
-        const localPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
-        const localIndex = localPlans.findIndex(localPlan => localPlan.id === plan.id);
-        
-        if (localIndex >= 0) {
-            localPlans.splice(localIndex, 1);
-            localStorage.setItem('savedTestPlans', JSON.stringify(localPlans));
-            console.log('✅ Plan removed from localStorage');
-        }
-        
-        // Update the current plans list by removing the deleted plan
-        if (window.currentSavedPlans) {
-            window.currentSavedPlans.splice(planIndex, 1);
-        }
-        
-        // Refresh the modal display
-        openLoadPlanModal();
-        
-    } catch (error) {
-        console.error('❌ Error deleting plan:', error);
-        alert(`Error deleting plan: ${error.message}`);
-    }
+    // Remove plan from array
+    savedPlans.splice(planIndex, 1);
+    
+    // Save updated array back to localStorage
+    localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
+    
+    // Refresh the modal display
+    openLoadPlanModal();
 }
 
 // Close Load Plan Modal
@@ -1798,160 +1405,6 @@ function clearChatConversation() {
     
     // Clear the input field
     document.getElementById('chat-input').value = '';
-}
-
-// Notification functions
-function showSuccessMessage(message) {
-    showNotification(message, 'success');
-}
-
-function showErrorMessage(message) {
-    showNotification(message, 'error');
-}
-
-function showWarningMessage(message) {
-    showNotification(message, 'warning');
-}
-
-function showInfoMessage(message) {
-    showNotification(message, 'info');
-}
-
-function showNotification(message, type = 'info') {
-    // Remove existing notifications
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notification => notification.remove());
-    
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    
-    const icon = getNotificationIcon(type);
-    
-    notification.innerHTML = `
-        <div class="notification-content">
-            <div class="notification-icon">${icon}</div>
-            <div class="notification-message">${message}</div>
-            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
-        </div>
-    `;
-    
-    // Add styles if not already present
-    if (!document.getElementById('notification-styles')) {
-        const styles = document.createElement('style');
-        styles.id = 'notification-styles';
-        styles.textContent = `
-            .notification {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 10000;
-                max-width: 400px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-                animation: slideInRight 0.3s ease-out;
-            }
-            
-            .notification-success {
-                background: #f0fff4;
-                border: 1px solid #68d391;
-                color: #22543d;
-            }
-            
-            .notification-error {
-                background: #fed7d7;
-                border: 1px solid #fc8181;
-                color: #742a2a;
-            }
-            
-            .notification-warning {
-                background: #fefcbf;
-                border: 1px solid #f6e05e;
-                color: #744210;
-            }
-            
-            .notification-info {
-                background: #ebf8ff;
-                border: 1px solid #63b3ed;
-                color: #2a4365;
-            }
-            
-            .notification-content {
-                display: flex;
-                align-items: flex-start;
-                padding: 12px 16px;
-                gap: 12px;
-            }
-            
-            .notification-icon {
-                flex-shrink: 0;
-                margin-top: 2px;
-            }
-            
-            .notification-message {
-                flex: 1;
-                font-size: 14px;
-                line-height: 1.4;
-            }
-            
-            .notification-close {
-                background: none;
-                border: none;
-                font-size: 18px;
-                cursor: pointer;
-                padding: 0;
-                line-height: 1;
-                opacity: 0.6;
-                flex-shrink: 0;
-            }
-            
-            .notification-close:hover {
-                opacity: 1;
-            }
-            
-            @keyframes slideInRight {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-        `;
-        document.head.appendChild(styles);
-    }
-    
-    // Add to page
-    document.body.appendChild(notification);
-    
-    // Auto-remove after 5 seconds for success/info, 8 seconds for warning/error
-    const duration = (type === 'success' || type === 'info') ? 5000 : 8000;
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.style.animation = 'slideInRight 0.3s ease-out reverse';
-            setTimeout(() => notification.remove(), 300);
-        }
-    }, duration);
-}
-
-function getNotificationIcon(type) {
-    const icons = {
-        success: `<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-        </svg>`,
-        error: `<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-        </svg>`,
-        warning: `<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-        </svg>`,
-        info: `<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-        </svg>`
-    };
-    return icons[type] || icons.info;
 }
 
 // Logout
