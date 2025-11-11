@@ -465,21 +465,6 @@ function viewTestSteps(testCaseId) {
             <p style="color: #4a5568;">${testCase.testData}</p>
         </div>
         
-        <div style="margin-bottom: 1.5rem;">
-            <h4 style="color: #2d3748; margin-bottom: 1rem;">Test Steps</h4>
-    `;
-    
-    testCase.steps.forEach(step => {
-        stepsHTML += `
-            <div class="test-step">
-                <div class="test-step-description">${step.number}. ${step.description}</div>
-            </div>
-        `;
-    });
-    
-    stepsHTML += `
-        </div>
-        
         <div>
             <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Expected Result</h4>
             <p style="color: #4a5568;">${testCase.expectedResult}</p>
@@ -750,19 +735,6 @@ function editTestCase(testCaseId) {
     
     modalTitle.textContent = `Edit ${testCase.id}`;
     
-    // Build steps HTML for editing
-    let stepsHTML = '';
-    testCase.steps.forEach((step, index) => {
-        // Extract a title from the description (first sentence or first 50 chars)
-        const stepTitle = step.description.split('.')[0] || step.description.substring(0, 50);
-        stepsHTML += `
-            <div class="edit-step-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <input type="text" class="form-control" value="${step.number} - ${stepTitle}" readonly style="width: 200px;">
-                <input type="text" class="form-control step-description" data-step-index="${index}" value="${step.description}" style="flex: 1;">
-            </div>
-        `;
-    });
-    
     modalBody.innerHTML = `
         <div class="form-group" style="margin-bottom: 1rem;">
             <label for="edit-name">Test Case Name</label>
@@ -794,13 +766,6 @@ function editTestCase(testCaseId) {
         </div>
         
         <div class="form-group" style="margin-bottom: 1rem;">
-            <label>Test Steps</label>
-            <div id="edit-steps-container">
-                ${stepsHTML}
-            </div>
-        </div>
-        
-        <div class="form-group" style="margin-bottom: 1rem;">
             <label for="edit-expected-result">Expected Result</label>
             <textarea id="edit-expected-result" class="form-control" rows="2">${testCase.expectedResult}</textarea>
         </div>
@@ -826,14 +791,6 @@ function saveTestCaseEdit(testCaseId) {
     testCase.preconditions = document.getElementById('edit-preconditions').value;
     testCase.testData = document.getElementById('edit-test-data').value;
     testCase.expectedResult = document.getElementById('edit-expected-result').value;
-    
-    // Update steps
-    const stepDescriptions = document.querySelectorAll('.step-description');
-    stepDescriptions.forEach((input, index) => {
-        if (testCase.steps[index]) {
-            testCase.steps[index].description = input.value;
-        }
-    });
     
     // Update the display
     displayTestCases();
