@@ -44,8 +44,25 @@ class APIService {
 
             // Check if response is successful
             if (!response.ok) {
+                // Extract error message from various possible formats
+                let errorMessage = `HTTP ${response.status}`;
+                
+                if (responseData.error) {
+                    if (typeof responseData.error === 'string') {
+                        errorMessage = responseData.error;
+                    } else if (responseData.error.message) {
+                        errorMessage = responseData.error.message;
+                    } else if (responseData.error.error) {
+                        errorMessage = responseData.error.error;
+                    } else {
+                        errorMessage = JSON.stringify(responseData.error);
+                    }
+                } else if (responseData.message) {
+                    errorMessage = responseData.message;
+                }
+                
                 throw new APIError(
-                    responseData.message || responseData.error || `HTTP ${response.status}`,
+                    errorMessage,
                     response.status,
                     responseData
                 );
@@ -231,7 +248,7 @@ class APIService {
     async generateTestPlanWithAI(requirements) {
         // Use the correct endpoint for AI generation
         return await this.request('/api/ai', 'POST', {
-            action: 'generate_plan',
+            action: 'generate-plan',
             ...requirements
         });
     }

@@ -216,6 +216,83 @@
             margin-bottom: 0.5rem;
         }
 
+        /* AWS Account Info Section */
+        .aws-info-section {
+            background: linear-gradient(135deg, rgba(49, 151, 149, 0.1) 0%, rgba(44, 122, 123, 0.1) 100%);
+            border: 2px solid rgba(49, 151, 149, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(5px);
+        }
+
+        .aws-info-section h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .aws-info-badges {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .aws-info-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(49, 151, 149, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .aws-info-badge:hover {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(49, 151, 149, 0.3);
+            transform: translateX(2px);
+        }
+
+        .aws-info-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #319795 0%, #2c7a7b 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .aws-info-content {
+            flex: 1;
+        }
+
+        .aws-info-label {
+            font-size: 0.75rem;
+            color: #718096;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .aws-info-value {
+            font-size: 1rem;
+            color: #2d3748;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             body {
@@ -291,19 +368,19 @@
 
             <div class="credentials-form">
                 <h2>Sign In</h2>
-                <p>Enter your credentials to access the test plan generator.</p>
+                <p>Enter your AWS credentials to access the test plan generator.</p>
                 
                 <div class="form-group">
-                    <input type="text" id="username" class="form-control" placeholder="Username" autocomplete="username">
+                    <input type="text" id="access-key" class="form-control" placeholder="AWS Access Key ID" autocomplete="username">
                 </div>
                 
                 <div class="form-group">
-                    <input type="password" id="password" class="form-control" placeholder="Password" autocomplete="current-password">
+                    <input type="password" id="secret-key" class="form-control" placeholder="AWS Secret Access Key" autocomplete="current-password">
                 </div>
                 
                 <button id="login-btn" class="login-button" onclick="login()">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
                     </svg>
                     Sign In
                 </button>
@@ -311,24 +388,24 @@
 
             <div class="security-note">
                 <strong>🔒 Security Notice</strong>
-                Your credentials are validated and stored securely in your browser session. They are only used for authentication and are never transmitted to external servers.
+                Your AWS credentials are validated and stored securely in your browser session. They are only used for authentication and are never transmitted to external servers.
             </div>
         </div>
     </div>
 
     <script>
-        // Simple login validation (for mockup purposes)
+        // AWS credentials login validation (for mockup purposes)
         function login() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
+            const accessKey = document.getElementById('access-key').value.trim();
+            const secretKey = document.getElementById('secret-key').value.trim();
             const loginBtn = document.getElementById('login-btn');
             
             // Hide any existing errors
             hideError();
             
             // Validation
-            if (!username || !password) {
-                showError('Please enter both username and password');
+            if (!accessKey || !secretKey) {
+                showError('Please enter both Access Key ID and Secret Access Key');
                 return;
             }
             
@@ -336,21 +413,22 @@
             loginBtn.disabled = true;
             loginBtn.innerHTML = `
                 <div class="loading-spinner"></div>
-                Signing in...
+                Authenticating...
             `;
             
-            // Simulate authentication (in real app, this would call an API)
+            // Simulate AWS authentication (in real app, this would validate credentials)
             setTimeout(() => {
                 // For mockup, accept any credentials
                 sessionStorage.setItem('user_authenticated', 'true');
-                sessionStorage.setItem('username', username);
+                sessionStorage.setItem('aws_access_key', accessKey);
+                sessionStorage.setItem('aws_region', 'eu-west-1');
                 
                 // Success feedback
                 loginBtn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Success! Redirecting...
+                    Authentication Successful!
                 `;
                 
                 // Redirect to dashboard
@@ -389,12 +467,12 @@
             }
             
             // Focus on first input field
-            document.getElementById('username').focus();
+            document.getElementById('access-key').focus();
         });
         
         // Clear error when user starts typing
-        document.getElementById('username').addEventListener('input', hideError);
-        document.getElementById('password').addEventListener('input', hideError);
+        document.getElementById('access-key').addEventListener('input', hideError);
+        document.getElementById('secret-key').addEventListener('input', hideError);
     </script>
 </body>
 </html>

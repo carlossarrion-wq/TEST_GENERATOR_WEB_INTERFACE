@@ -17,9 +17,9 @@ except ImportError:
     print("⚠️ Redis not available, using in-memory fallback")
 
 try:
-    from langchain.memory import BaseChatMemory
-    from langchain.memory.chat_message_histories import BaseChatMessageHistory
-    from langchain.schema import BaseMessage, HumanMessage, AIMessage
+    from langchain_core.memory import BaseChatMemory
+    from langchain_core.chat_history import BaseChatMessageHistory
+    from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
     LANGCHAIN_MEMORY_AVAILABLE = True
 except ImportError:
     LANGCHAIN_MEMORY_AVAILABLE = False

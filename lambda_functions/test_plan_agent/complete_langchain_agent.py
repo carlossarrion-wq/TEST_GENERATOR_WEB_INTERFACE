@@ -24,9 +24,8 @@ from .utils.response_helpers import create_success_response, create_error_respon
 try:
     import boto3
     from langchain.agents import AgentType, initialize_agent
-    from langchain.llms.bedrock import Bedrock
-    from langchain.chat_models import ChatBedrock
-    from langchain.tools import Tool
+    from langchain_aws import ChatBedrock
+    from langchain_core.tools import Tool
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
@@ -60,14 +59,15 @@ class CompleteLangChainAgent:
         self.logger.info(f"Complete LangChain Agent initialized - Execution ID: {self.execution_id}")
     
     def _initialize_bedrock_client(self):
-        """Initialize Bedrock client for Claude Sonnet"""
+        """Initialize Bedrock client for Claude Haiku 4.5"""
         
         try:
             self.bedrock_client = boto3.client('bedrock-runtime', region_name=self.region)
             self.bedrock_agent_client = boto3.client('bedrock-agent-runtime', region_name=self.region)
-            self.model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+            # Using Haiku 4.5 inference profile for speed and cost optimization
+            self.model_id = "eu.anthropic.claude-haiku-4-5-20251001-v1:0"
             self.knowledge_base_id = "VH6SRH9ZNO"
-            self.logger.info("✅ Bedrock client initialized successfully")
+            self.logger.info("✅ Bedrock client initialized with Haiku 4.5")
         except Exception as e:
             self.logger.error(f"❌ Failed to initialize Bedrock client: {e}")
             raise
@@ -150,10 +150,12 @@ class CompleteLangChainAgent:
                 )
             ]
             
-            # Initialize ChatBedrock LLM
+            # Initialize ChatBedrock LLM with inference profile
+            # IMPORTANT: Use model_id parameter for inference profiles in langchain_aws
             self.llm = ChatBedrock(
                 client=self.bedrock_client,
-                model_id=self.model_id,
+                model_id=self.model_id,  # This is the inference profile
+                region_name=self.region,
                 model_kwargs={
                     "max_tokens": 4000,
                     "temperature": 0.1,
@@ -176,6 +178,8 @@ class CompleteLangChainAgent:
             
         except Exception as e:
             self.logger.error(f"❌ Failed to initialize LangChain agent: {e}")
+            import traceback
+            traceback.print_exc()
             self.langchain_agent = None
     
     def _wrap_tool_execution(self, tool_instance):
@@ -245,6 +249,8 @@ class CompleteLangChainAgent:
                 
         except Exception as e:
             self.logger.error(f"❌ Test plan generation failed: {e}")
+            import traceback
+            traceback.print_exc()
             return create_error_response(
                 f"Test plan generation failed: {str(e)}",
                 execution_id=self.execution_id
@@ -329,6 +335,8 @@ class CompleteLangChainAgent:
             
         except Exception as e:
             self.logger.error(f"❌ LangChain agent processing failed: {e}")
+            import traceback
+            traceback.print_exc()
             # Fallback to specialized workflow
             return self._process_with_specialized_workflow(requirements)
     
@@ -336,42 +344,73 @@ class CompleteLangChainAgent:
         """Process using specialized tools workflow (manual orchestration)"""
         
         try:
+            print("\n" + "="*80)
+            print("🚀 USANDO LANGCHAIN CON HAIKU 4.5")
+            print("="*80)
             self.logger.info("🔧 Processing with specialized tools workflow")
             
             workflow_results = {}
             
             # Step 1: Analyze requirements
+            print("\n📋 Herramienta 1/5: Requirements Analyzer")
+            print("   └─ Analizando requerimientos funcionales...")
             self.logger.info("📋 Step 1: Analyzing requirements")
             requirements_analysis = self._execute_requirements_analysis(requirements)
             workflow_results["requirements_analysis"] = requirements_analysis
+            if requirements_analysis.get("functional_requirements"):
+                print(f"   └─ ✅ {len(requirements_analysis['functional_requirements'])} requerimientos identificados")
             
             # Step 2: Retrieve knowledge base insights
+            print("\n🧠 Herramienta 2/5: Knowledge Base Retriever")
+            print("   └─ Consultando base de conocimiento...")
             self.logger.info("🧠 Step 2: Retrieving knowledge base insights")
             kb_insights = self._execute_knowledge_retrieval(requirements)
             workflow_results["knowledge_insights"] = kb_insights
+            if kb_insights.get("insights"):
+                print(f"   └─ ✅ {len(kb_insights['insights'])} insights recuperados")
             
             # Step 3: Generate test cases
+            print("\n🧪 Herramienta 3/5: Test Case Generator (Haiku 4.5 + Prompt Caching)")
+            print("   └─ Generando casos de prueba...")
             self.logger.info("🧪 Step 3: Generating test cases")
             test_cases = self._execute_test_case_generation(requirements_analysis, kb_insights, requirements)
             workflow_results["test_cases"] = test_cases
+            if test_cases.get("test_cases"):
+                print(f"   └─ ✅ {len(test_cases['test_cases'])} casos generados")
             
             # Step 4: Calculate coverage
+            print("\n📊 Herramienta 4/5: Coverage Calculator")
+            print("   └─ Calculando cobertura...")
             self.logger.info("📊 Step 4: Calculating coverage")
             coverage_analysis = self._execute_coverage_calculation(test_cases, requirements_analysis)
             workflow_results["coverage_analysis"] = coverage_analysis
+            if coverage_analysis.get("overall_coverage"):
+                print(f"   └─ ✅ Cobertura: {coverage_analysis['overall_coverage'].get('percentage', 0)}%")
             
             # Step 5: Validate quality
+            print("\n✅ Herramienta 5/5: Quality Validator")
+            print("   └─ Validando calidad...")
             self.logger.info("✅ Step 5: Validating quality")
             quality_validation = self._execute_quality_validation(test_cases["test_cases"])
             workflow_results["quality_validation"] = quality_validation
+            if quality_validation.get("overall_metrics"):
+                print(f"   └─ ✅ Score: {quality_validation['overall_metrics'].get('average_score', 0)}/100")
             
             # Create final structured response
             final_result = self._create_final_response(workflow_results, requirements)
+            
+            print("\n" + "="*80)
+            print("🎉 GENERACIÓN COMPLETADA EXITOSAMENTE")
+            print(f"   └─ Tiempo total: {time.time() - self.start_time:.2f}s")
+            print(f"   └─ Casos generados: {len(final_result.get('test_cases', []))}")
+            print("="*80 + "\n")
             
             return create_success_response(final_result, execution_id=self.execution_id)
             
         except Exception as e:
             self.logger.error(f"❌ Specialized workflow failed: {e}")
+            import traceback
+            traceback.print_exc()
             return create_error_response(f"Specialized workflow failed: {str(e)}", execution_id=self.execution_id)
     
     def _execute_requirements_analysis(self, requirements: Dict[str, Any]) -> Dict[str, Any]:

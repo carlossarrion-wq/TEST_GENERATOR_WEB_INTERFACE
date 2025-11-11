@@ -1398,6 +1398,161 @@ label {
     font-weight: 600;
 }
 
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(49, 151, 149, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.loading-content {
+    text-align: center;
+    color: white;
+    padding: 3rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.loading-content h3 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.loading-content p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0;
+    color: white;
+}
+
+.loading-spinner-large {
+    width: 80px;
+    height: 80px;
+    border: 6px solid rgba(255, 255, 255, 0.3);
+    border-top: 6px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 2rem;
+}
+
+/* Config Section Collapse/Expand */
+#config-section {
+    transition: all 0.3s ease;
+}
+
+#config-section.collapsed {
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 250, 251, 0.98) 100%);
+}
+
+#config-section.collapsed .section-header {
+    margin-bottom: 0;
+}
+
+#config-section.collapsed .form-section {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+    transition: all 0.3s ease;
+}
+
+#config-section:not(.collapsed) .form-section {
+    max-height: 2000px;
+    opacity: 1;
+    transition: all 0.3s ease;
+}
+
+/* New Test Plan Button - Improved styling */
+.btn-new-plan {
+    padding: 0.875rem 2rem;
+    background: linear-gradient(135deg, #319795 0%, #2c7a7b 100%);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 4px 20px rgba(49, 151, 149, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-new-plan::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-new-plan:hover::before {
+    left: 100%;
+}
+
+.btn-new-plan:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 30px rgba(49, 151, 149, 0.5);
+}
+
+.btn-new-plan:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+.btn-new-plan svg {
+    width: 22px;
+    height: 22px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Hide buttons in collapsed state */
+#config-section.collapsed #load-plan-header-btn,
+#config-section.collapsed #import-jira-header-btn {
+    display: none;
+}
+
+/* Show New Plan button only in collapsed state */
+#config-section:not(.collapsed) #new-plan-btn {
+    display: none !important;
+}
+
+#config-section.collapsed #new-plan-btn {
+    display: flex !important;
+    animation: slideInFromRight 0.4s ease-out;
+}
+
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
     * {

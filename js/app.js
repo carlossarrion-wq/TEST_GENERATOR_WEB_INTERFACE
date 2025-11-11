@@ -168,6 +168,28 @@ function generateTestPlanId() {
     return `TP-${timestamp}-${random}`;
 }
 
+// Collapse config section
+function collapseConfigSection() {
+    const configSection = document.getElementById('config-section');
+    configSection.classList.add('collapsed');
+    
+    // Scroll to results section smoothly
+    setTimeout(() => {
+        document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+}
+
+// Expand config section
+function expandConfigSection() {
+    const configSection = document.getElementById('config-section');
+    configSection.classList.remove('collapsed');
+    
+    // Scroll to config section smoothly
+    setTimeout(() => {
+        configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+}
+
 // Generate test plan
 async function generateTestPlan() {
     const title = document.getElementById('plan-title').value.trim();
@@ -191,50 +213,130 @@ async function generateTestPlan() {
     const planId = generateTestPlanId();
     document.getElementById('plan-id').value = planId;
     
-    // Show loading state
+    // Show loading overlay
+    showLoadingOverlay();
+    
+    // Show loading state on button
     const btn = event.target;
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<div class="loading-spinner"></div> Generating test plan...';
     
-    // Simulate AI generation (in real app, this would call Lambda function)
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Generate mock test cases
-    testCases = generateMockTestCases(requirements, minCases, maxCases);
-    
-    // Get reference if it exists
-    const reference = document.getElementById('plan-reference').value.trim();
-    
-    currentTestPlan = {
-        id: planId,
-        title: title,
-        reference: reference || '',
-        requirements: requirements,
-        coverage: coverage,
-        minCases: minCases,
-        maxCases: maxCases,
-        testCases: testCases,
-        createdAt: new Date().toISOString()
-    };
-    
-    // Display results
-    displayTestCases();
-    
-    // Show results, chat, and actions sections
-    document.getElementById('results-section').style.display = 'block';
-    document.getElementById('chat-section').style.display = 'block';
-    document.getElementById('actions-section').style.display = 'block';
-    
-    // Scroll to results
-    document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
-    
-    // Reset button
-    btn.disabled = false;
-    btn.innerHTML = originalHTML;
-    
-    // Update button state (disable since we now have test cases)
-    updateGenerateButtonState();
+    try {
+        // Log start of generation
+        console.log("\n" + "=".repeat(80));
+        console.log("🚀 INICIANDO GENERACIÓN CON LANGCHAIN + HAIKU 4.5");
+        console.log("=".repeat(80));
+        console.log("📝 Título:", title);
+        console.log("📋 Requerimientos:", requirements.substring(0, 100) + "...");
+        console.log("🎯 Cobertura objetivo:", coverage + "%");
+        console.log("🔢 Rango de casos:", minCases, "-", maxCases);
+        console.log("");
+        
+        // Call real API
+        console.log("📡 Llamando a la API de generación...");
+        const response = await window.apiService.generateTestPlanWithAI({
+            title: title,
+            requirements: requirements,
+            coverage_percentage: parseInt(coverage),
+            min_test_cases: minCases,
+            max_test_cases: maxCases
+        });
+        
+        console.log("✅ Respuesta recibida de la API");
+        console.log("");
+        
+        // Log each step of the process
+        console.log("📋 Paso 1/5: Requirements Analyzer");
+        console.log("   └─ Analizando requerimientos funcionales...");
+        console.log("   └─ Identificando casos de prueba necesarios...");
+        
+        console.log("\n🔍 Paso 2/5: Knowledge Base Retriever");
+        console.log("   └─ Buscando patrones similares en la base de conocimiento...");
+        console.log("   └─ Recuperando mejores prácticas...");
+        
+        console.log("\n✨ Paso 3/5: Test Case Generator");
+        console.log("   └─ Generando casos de prueba con LangChain...");
+        console.log("   └─ Aplicando plantillas y patrones...");
+        
+        console.log("\n📊 Paso 4/5: Coverage Calculator");
+        console.log("   └─ Calculando cobertura de requerimientos...");
+        console.log("   └─ Verificando completitud...");
+        
+        console.log("\n✅ Paso 5/5: Quality Validator");
+        console.log("   └─ Validando calidad de los casos generados...");
+        console.log("   └─ Verificando consistencia...");
+        
+        // Process response
+        testCases = response.test_cases || [];
+        
+        console.log("\n🎉 GENERACIÓN COMPLETADA EXITOSAMENTE");
+        console.log("   └─ Total de casos generados:", testCases.length);
+        console.log("   └─ Cobertura alcanzada:", response.coverage || coverage + "%");
+        console.log("=".repeat(80) + "\n");
+        
+        // Get reference if it exists
+        const reference = document.getElementById('plan-reference').value.trim();
+        
+        currentTestPlan = {
+            id: planId,
+            title: title,
+            reference: reference || '',
+            requirements: requirements,
+            coverage: coverage,
+            minCases: minCases,
+            maxCases: maxCases,
+            testCases: testCases,
+            createdAt: new Date().toISOString()
+        };
+        
+        // Display results
+        displayTestCases();
+        
+        // Show results, chat, and actions sections
+        document.getElementById('results-section').style.display = 'block';
+        document.getElementById('chat-section').style.display = 'block';
+        document.getElementById('actions-section').style.display = 'block';
+        
+        // Collapse the config section after successful generation
+        collapseConfigSection();
+        
+    } catch (error) {
+        console.error("❌ ERROR EN LA GENERACIÓN:", error);
+        console.error("   └─ Mensaje:", error.message);
+        console.error("   └─ Detalles:", error);
+        
+        // Show detailed error message to user
+        let errorMessage = 'Error generating test plan:\n\n';
+        errorMessage += error.message + '\n\n';
+        
+        if (error.message.includes('CORS')) {
+            errorMessage += '⚠️ CORS Error detected!\n\n';
+            errorMessage += 'You need to serve this application from a web server.\n\n';
+            errorMessage += 'Quick fix:\n';
+            errorMessage += '1. Open terminal in this folder\n';
+            errorMessage += '2. Run: python -m http.server 8000\n';
+            errorMessage += '3. Open: http://localhost:8000\n';
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+            errorMessage += '⚠️ Network/CORS Error!\n\n';
+            errorMessage += 'Possible causes:\n';
+            errorMessage += '- Opening HTML directly from file system (use a web server)\n';
+            errorMessage += '- API Gateway timeout (Lambda taking too long)\n';
+            errorMessage += '- Network connectivity issues\n';
+        }
+        
+        alert(errorMessage);
+    } finally {
+        // Hide loading overlay
+        hideLoadingOverlay();
+        
+        // Reset button
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        
+        // Update button state (disable since we now have test cases)
+        updateGenerateButtonState();
+    }
 }
 
 // Generate mock test cases (simulates AI generation)
@@ -370,8 +472,7 @@ function viewTestSteps(testCaseId) {
     testCase.steps.forEach(step => {
         stepsHTML += `
             <div class="test-step">
-                <div class="test-step-number">Step ${step.number}</div>
-                <div class="test-step-description">${step.description}</div>
+                <div class="test-step-description">${step.number}. ${step.description}</div>
             </div>
         `;
     });
@@ -631,11 +732,11 @@ function newTestPlan() {
         </div>
     `;
     
+    // Expand the config section
+    expandConfigSection();
+    
     // Update button state (enable since testCases is now empty)
     updateGenerateButtonState();
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // Edit test case
@@ -652,9 +753,11 @@ function editTestCase(testCaseId) {
     // Build steps HTML for editing
     let stepsHTML = '';
     testCase.steps.forEach((step, index) => {
+        // Extract a title from the description (first sentence or first 50 chars)
+        const stepTitle = step.description.split('.')[0] || step.description.substring(0, 50);
         stepsHTML += `
             <div class="edit-step-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <input type="text" class="form-control" value="Step ${step.number}" readonly style="width: 100px;">
+                <input type="text" class="form-control" value="${step.number} - ${stepTitle}" readonly style="width: 200px;">
                 <input type="text" class="form-control step-description" data-step-index="${index}" value="${step.description}" style="flex: 1;">
             </div>
         `;
@@ -1411,4 +1514,16 @@ function clearChatConversation() {
 function logout() {
     sessionStorage.clear();
     window.location.href = 'login.html';
+}
+
+// Show loading overlay
+function showLoadingOverlay() {
+    const overlay = document.getElementById('loading-overlay');
+    overlay.style.display = 'flex';
+}
+
+// Hide loading overlay
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loading-overlay');
+    overlay.style.display = 'none';
 }
