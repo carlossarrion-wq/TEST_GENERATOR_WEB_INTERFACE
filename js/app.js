@@ -233,15 +233,29 @@ async function generateTestPlan() {
         console.log("🔢 Rango de casos:", minCases, "-", maxCases);
         console.log("");
         
+        // Get user team from session storage
+        const userTeam = sessionStorage.getItem('user_team');
+        
         // Call real API
         console.log("📡 Llamando a la API de generación...");
-        const response = await window.apiService.generateTestPlanWithAI({
+        if (userTeam) {
+            console.log("👥 Team del usuario:", userTeam);
+        }
+        
+        const requestData = {
             title: title,
             requirements: requirements,
             coverage_percentage: parseInt(coverage),
             min_test_cases: minCases,
             max_test_cases: maxCases
-        });
+        };
+        
+        // Add team if available
+        if (userTeam) {
+            requestData.user_team = userTeam;
+        }
+        
+        const response = await window.apiService.generateTestPlanWithAI(requestData);
         
         console.log("✅ Respuesta recibida de la API");
         console.log("");

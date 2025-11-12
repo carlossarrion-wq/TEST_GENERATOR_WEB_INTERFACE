@@ -1,0 +1,1 @@
+{"statusCode": 400, "headers": {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Allow-Methods": "POST, OPTIONS"}, "body": "{\"error\": \"Missing credentials\", \"message\": \"Both username and password are required\"}"}

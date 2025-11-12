@@ -416,26 +416,90 @@
                 Authenticating...
             `;
             
-            // Simulate AWS authentication (in real app, this would validate credentials)
-            setTimeout(() => {
-                // For mockup, accept any credentials
-                sessionStorage.setItem('user_authenticated', 'true');
-                sessionStorage.setItem('aws_access_key', accessKey);
-                sessionStorage.setItem('aws_region', 'eu-west-1');
+            // Call the IAM authentication Lambda function
+            fetch('https://2xlh113423.execute-api.eu-west-1.amazonaws.com/prod/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    access_key: accessKey,
+                    secret_key: secretKey
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Log complete response for debugging
+                console.log('📦 Respuesta completa del Lambda:', data);
                 
-                // Success feedback
+                if (data.success && data.user) {
+                    // Store authentication data
+                    sessionStorage.setItem('user_authenticated', 'true');
+                    sessionStorage.setItem('aws_access_key', accessKey);
+                    sessionStorage.setItem('aws_region', 'eu-west-1');
+                    sessionStorage.setItem('username', data.user.username || accessKey);
+                    
+                    // Display authentication success header
+                    console.log('\n🔐 ===== AUTENTICACIÓN EXITOSA =====');
+                    console.log('👤 Usuario:', data.user.username || 'N/A');
+                    console.log('🏢 Account:', data.user.account || 'N/A');
+                    console.log('📋 ARN:', data.user.arn || 'N/A');
+                    
+                    // Handle team information
+                    const validTeams = ['darwin', 'deltasmile', 'mulesoft', 'sap', 'saplcorp'];
+                    
+                    if (data.user.team && validTeams.includes(data.user.team)) {
+                        // User has valid team
+                        sessionStorage.setItem('user_team', data.user.team);
+                        console.log('✅ EQUIPO ASIGNADO:', data.user.team.toUpperCase());
+                        
+                        if (data.user.team_full) {
+                            sessionStorage.setItem('user_team_full', data.user.team_full);
+                            console.log('📝 Etiqueta Team original:', '"' + data.user.team_full + '"');
+                        }
+                    } else if (data.user.team_full && !data.user.team) {
+                        // User has Team tag but value not recognized
+                        console.log('⚠️ ADVERTENCIA: Este usuario NO tiene equipo asignado');
+                        console.log('📋 Etiqueta Team encontrada:', '"' + data.user.team_full + '"');
+                        console.log('❌ No coincide con ningún equipo válido:', validTeams.join(', '));
+                    } else {
+                        // User has no Team tag at all
+                        console.log('⚠️ ADVERTENCIA: Este usuario NO tiene equipo asignado');
+                        console.log('📋 Motivo: No se encontró la etiqueta "Team" en IAM');
+                        console.log('💡 Equipos válidos:', validTeams.join(', '));
+                    }
+                    
+                    console.log('====================================\n');
+                    
+                    // Success feedback
+                    loginBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Authentication Successful!
+                    `;
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Authentication failed');
+                }
+            })
+            .catch(error => {
+                console.error('Authentication error:', error);
+                showError(error.message || 'Authentication failed. Please check your credentials.');
+                
+                // Reset button
+                loginBtn.disabled = false;
                 loginBtn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
                     </svg>
-                    Authentication Successful!
+                    Sign In
                 `;
-                
-                // Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
-            }, 1500);
+            });
         }
         
         // Show error message
