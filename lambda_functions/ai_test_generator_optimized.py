@@ -68,14 +68,15 @@ def generate_test_plan_with_langchain(data):
         min_test_cases = data.get('min_test_cases', 5)
         max_test_cases = data.get('max_test_cases', 15)
         selected_test_types = data.get('selected_test_types', ['functional', 'negative'])
+        user_team = data.get('user_team')  # Extract user team for OpenSearch routing
         
         if not LANGCHAIN_AGENT_AVAILABLE:
             print("⚠️ LangChain Agent not available, using fallback")
             return generate_test_plan_fallback(data)
         
-        # Initialize LangChain Agent with all specialized tools
-        print("🚀 Initializing LangChain Agent with Haiku 4.5 and specialized tools")
-        agent = CompleteLangChainAgent(region='eu-west-1')
+        # Initialize LangChain Agent with all specialized tools and team context
+        print(f"🚀 Initializing LangChain Agent with Haiku 4.5 and specialized tools (Team: {user_team})")
+        agent = CompleteLangChainAgent(region='eu-west-1', user_team=user_team)
         
         # Prepare input for agent
         agent_input = {
@@ -164,14 +165,15 @@ def generate_test_plan_with_langchain(data):
                     'steps': steps_data
                 })
             
-            # Save initial chat message
+            # Save initial chat message with team info
+            team_info = f" (Equipo: {user_team})" if user_team else ""
             cursor.execute("""
                 INSERT INTO chat_messages (
                     test_plan_id, message_type, content, message_order
                 ) VALUES (%s, %s, %s, %s)
             """, (
                 test_plan_internal_id, 'assistant',
-                f"Plan de pruebas '{title}' generado con LangChain + Haiku 4.5: {len(created_cases)} casos de alta calidad usando workflow especializado con 5 herramientas (Requirements Analyzer, Knowledge Base Retriever, Test Case Generator, Coverage Calculator, Quality Validator).",
+                f"Plan de pruebas '{title}' generado con LangChain + Haiku 4.5{team_info}: {len(created_cases)} casos de alta calidad usando workflow especializado con 5 herramientas (Requirements Analyzer, Knowledge Base Retriever con OpenSearch, Test Case Generator, Coverage Calculator, Quality Validator).",
                 1
             ))
             
@@ -191,6 +193,7 @@ def generate_test_plan_with_langchain(data):
                 'tools_used': agent_data.get('execution_metadata', {}).get('tools_used', []),
                 'quality_score': quality_metrics.get('overall_score', 0),
                 'coverage_percentage': coverage_analysis.get('current_coverage', 0),
+                'opensearch_info': agent_data.get('opensearch_info', {}),
                 'test_cases': created_cases
             })
     

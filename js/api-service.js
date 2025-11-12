@@ -40,7 +40,20 @@ class APIService {
                 responseData = { message: await response.text() };
             }
 
-            console.log(`📡 API Response: ${response.status}`, responseData);
+            // Enhanced logging for debugging
+            console.log(`📡 API Response: ${response.status}`);
+            console.log('📦 Response Data:', JSON.stringify(responseData, null, 2));
+            
+            // Log specific fields if they exist
+            if (responseData.plan_id) {
+                console.log(`✅ Plan ID: ${responseData.plan_id}`);
+            }
+            if (responseData.test_cases_created) {
+                console.log(`✅ Test Cases Created: ${responseData.test_cases_created}`);
+            }
+            if (responseData.opensearch_info) {
+                console.log(`🔍 OpenSearch Info:`, responseData.opensearch_info);
+            }
 
             // Check if response is successful
             if (!response.ok) {

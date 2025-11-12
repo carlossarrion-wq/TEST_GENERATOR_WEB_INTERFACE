@@ -3,3 +3,5 @@ langchain-aws==0.2.35
 langchain-core==0.3.79
 boto3>=1.40.0
 pymysql>=1.1.0
+opensearch-py>=2.4.0
+requests-aws4auth>=1.2.3

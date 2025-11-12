@@ -28,6 +28,7 @@ def create_langchain_deployment_zip():
         'lambda_functions/test_plan_agent/utils/logging_config.py',
         'lambda_functions/test_plan_agent/utils/response_helpers.py',
         'lambda_functions/test_plan_agent/utils/redis_memory.py',
+        'lambda_functions/test_plan_agent/utils/opensearch_client.py',
     ]
     
     with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:

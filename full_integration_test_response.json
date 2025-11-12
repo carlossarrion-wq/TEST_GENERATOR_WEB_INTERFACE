@@ -1,0 +1,6 @@
+{
+  "error": {
+    "type": "AIGenerationError",
+    "message": "Error generating test plan: (2003, \"Can't connect to MySQL server on 'test-plan-generator-db.czuimyk2qu10.eu-west-1.rds.amazonaws.com' ([Errno 110] Connection timed out)\")"
+  }
+}

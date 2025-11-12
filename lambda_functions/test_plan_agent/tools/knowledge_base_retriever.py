@@ -1,30 +1,29 @@
 """
 Knowledge Base Retriever Tool
-Retrieves relevant information from AWS Knowledge Base
+Retrieves relevant information from OpenSearch (team-based indices)
 """
 
 import json
-import boto3
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from ..utils.opensearch_client import OpenSearchClient
 
 class KnowledgeBaseRetrieverTool:
-    """Tool for retrieving information from Knowledge Base"""
+    """Tool for retrieving information from OpenSearch Knowledge Base"""
     
-    def __init__(self, bedrock_agent_client=None, bedrock_client=None, knowledge_base_id=None, model_id=None):
+    def __init__(self, opensearch_client: Optional[OpenSearchClient] = None, user_team: Optional[str] = None):
         self.name = "knowledge_retriever"
-        self.description = """Retrieves relevant testing best practices and guidelines from the knowledge base.
-Use this tool to get specialized insights about testing methodologies, patterns, and recommendations."""
+        self.description = """Retrieves relevant testing best practices and guidelines from the team's knowledge base.
+Use this tool to get specialized insights about testing methodologies, patterns, and recommendations specific to the team."""
         
-        self.bedrock_agent_client = bedrock_agent_client or boto3.client('bedrock-agent-runtime', region_name='eu-west-1')
-        self.bedrock_client = bedrock_client or boto3.client('bedrock-runtime', region_name='eu-west-1')
-        self.knowledge_base_id = knowledge_base_id or 'VH6SRH9ZNO'
-        self.model_id = model_id or 'eu.anthropic.claude-haiku-4-5-20251001-v1:0'
+        self.opensearch_client = opensearch_client or OpenSearchClient()
+        self.user_team = user_team
     
     def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute knowledge base retrieval"""
+        """Execute knowledge base retrieval from OpenSearch"""
         try:
             query = input_data.get('query', '')
             max_results = input_data.get('max_results', 3)
+            team = input_data.get('team', self.user_team)
             
             if not query:
                 return {
@@ -32,37 +31,47 @@ Use this tool to get specialized insights about testing methodologies, patterns,
                     "insights": []
                 }
             
-            # Retrieve from Knowledge Base (optimized: 3 results, 400 chars each)
-            kb_response = self.bedrock_agent_client.retrieve(
-                knowledgeBaseId=self.knowledge_base_id,
-                retrievalQuery={'text': query},
-                retrievalConfiguration={
-                    'vectorSearchConfiguration': {
-                        'numberOfResults': min(max_results, 3),
-                        'overrideSearchType': 'HYBRID'
-                    }
-                }
+            print(f"🔍 Retrieving knowledge for team '{team}' with query: {query[:100]}...")
+            
+            # Retrieve from OpenSearch using team-specific indices
+            search_results = self.opensearch_client.search_documents(
+                query=query,
+                team=team,
+                max_results=min(max_results, 5),
+                min_score=0.5
             )
             
+            # Format results as insights
             insights = []
-            if 'retrievalResults' in kb_response:
-                for result in kb_response['retrievalResults'][:3]:
-                    content = result.get('content', {}).get('text', '')
-                    if content:
-                        insights.append({
-                            'content': content[:400],  # Limit to 400 chars
-                            'score': result.get('score', 0),
-                            'source': result.get('location', {}).get('s3Location', {}).get('uri', 'Unknown')
-                        })
+            indices_used = set()
+            for result in search_results[:3]:  # Limit to top 3 results
+                content = result.get('content', '')
+                if content:
+                    index_name = result.get('index', 'unknown')
+                    indices_used.add(index_name)
+                    insights.append({
+                        'content': content[:400],  # Limit to 400 chars for optimization
+                        'score': result.get('score', 0),
+                        'source': f"{index_name}/{result.get('title', 'Unknown')}",
+                        'title': result.get('title', ''),
+                        'index': index_name
+                    })
+            
+            print(f"✅ Retrieved {len(insights)} insights from OpenSearch")
+            print(f"📚 Indices used: {list(indices_used)}")
             
             return {
                 "insights": insights,
                 "total_retrieved": len(insights),
-                "query": query
+                "query": query,
+                "team": team,
+                "indices_used": list(indices_used)  # Include indices in response
             }
             
         except Exception as e:
-            print(f"KB retrieval error: {str(e)}")
+            print(f"❌ OpenSearch retrieval error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
                 "error": str(e),
                 "insights": [],

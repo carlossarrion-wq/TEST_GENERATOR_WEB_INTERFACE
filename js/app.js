@@ -240,6 +240,9 @@ async function generateTestPlan() {
         console.log("📡 Llamando a la API de generación...");
         if (userTeam) {
             console.log("👥 Team del usuario:", userTeam);
+            console.log("🔍 OpenSearch: Se usarán índices específicos del equipo", userTeam);
+        } else {
+            console.log("👥 Sin equipo asignado: Se usarán todos los índices disponibles");
         }
         
         const requestData = {
@@ -247,13 +250,9 @@ async function generateTestPlan() {
             requirements: requirements,
             coverage_percentage: parseInt(coverage),
             min_test_cases: minCases,
-            max_test_cases: maxCases
+            max_test_cases: maxCases,
+            user_team: userTeam || null  // Always include user_team (null if not available)
         };
-        
-        // Add team if available
-        if (userTeam) {
-            requestData.user_team = userTeam;
-        }
         
         const response = await window.apiService.generateTestPlanWithAI(requestData);
         

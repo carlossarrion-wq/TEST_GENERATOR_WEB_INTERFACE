@@ -38,10 +38,11 @@ class CompleteLangChainAgent:
     Implements the full workflow from the diagram with intelligent decision making
     """
     
-    def __init__(self, region='eu-west-1'):
+    def __init__(self, region='eu-west-1', user_team=None):
         """Initialize the complete LangChain agent"""
         
         self.region = region
+        self.user_team = user_team
         self.execution_id = str(uuid.uuid4())
         self.start_time = time.time()
         self.logger = setup_logger(__name__)
@@ -56,7 +57,7 @@ class CompleteLangChainAgent:
         else:
             self.logger.warning("LangChain not available, using simplified workflow")
         
-        self.logger.info(f"Complete LangChain Agent initialized - Execution ID: {self.execution_id}")
+        self.logger.info(f"Complete LangChain Agent initialized - Execution ID: {self.execution_id}, Team: {self.user_team}")
     
     def _initialize_bedrock_client(self):
         """Initialize Bedrock client for Claude Haiku 4.5"""
@@ -101,14 +102,13 @@ class CompleteLangChainAgent:
             self.coverage_calculator = CoverageCalculatorTool()
             self.test_case_generator = TestCaseGeneratorTool()
             self.quality_validator = QualityValidatorTool()
+            
+            # Initialize knowledge retriever with OpenSearch and team context
             self.knowledge_retriever = KnowledgeBaseRetrieverTool(
-                bedrock_agent_client=self.bedrock_agent_client,
-                bedrock_client=self.bedrock_client,
-                knowledge_base_id=self.knowledge_base_id,
-                model_id=self.model_id
+                user_team=self.user_team
             )
             
-            self.logger.info("✅ All specialized tools initialized")
+            self.logger.info(f"✅ All specialized tools initialized (Team: {self.user_team})")
         except Exception as e:
             self.logger.error(f"❌ Failed to initialize specialized tools: {e}")
             raise
@@ -443,12 +443,13 @@ class CompleteLangChainAgent:
             return {"error": str(e), "analysis_completed": False}
     
     def _execute_knowledge_retrieval(self, requirements: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute knowledge base retrieval"""
+        """Execute knowledge base retrieval from OpenSearch"""
         
         try:
             kb_input = {
                 "query": f"Test planning for: {requirements.get('title', '')} - {requirements.get('requirements', '')[:200]}",
-                "max_results": 5
+                "max_results": 5,
+                "team": self.user_team  # Pass team for index routing
             }
             
             start_time = time.time()
@@ -591,6 +592,7 @@ Begin by analyzing the requirements.
         coverage = workflow_results.get("coverage_analysis", {}).get("overall_coverage", {})
         quality = workflow_results.get("quality_validation", {}).get("overall_metrics", {})
         requirements_analysis = workflow_results.get("requirements_analysis", {})
+        kb_insights = workflow_results.get("knowledge_insights", {})  # Extract kb_insights from workflow_results
         
         # Calculate execution metrics
         total_execution_time = time.time() - self.start_time
@@ -615,6 +617,11 @@ Begin by analyzing the requirements.
                 "edge_cases_identified": len(requirements_analysis.get("edge_cases", [])),
                 "risk_areas": len(requirements_analysis.get("risk_areas", [])),
                 "kb_enhanced": True
+            },
+            "opensearch_info": {
+                "team": self.user_team,
+                "indices_used": kb_insights.get("indices_used", []),
+                "insights_retrieved": kb_insights.get("total_retrieved", 0)
             },
             "execution_metadata": {
                 "execution_id": self.execution_id,

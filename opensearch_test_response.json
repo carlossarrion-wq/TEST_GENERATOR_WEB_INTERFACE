@@ -1,0 +1,167 @@
+{
+  "message": "Test plan generated with LangChain specialized workflow",
+  "plan_id": "TP-1762966068-6350",
+  "test_cases_created": 5,
+  "execution_time_seconds": 28.45,
+  "model_used": "langchain-haiku-4.5-specialized",
+  "processing_method": "specialized_workflow_complete",
+  "tools_used": [
+    "requirements_analysis",
+    "knowledge_insights",
+    "test_cases",
+    "coverage_analysis",
+    "quality_validation"
+  ],
+  "quality_score": 100.0,
+  "coverage_percentage": 100,
+  "opensearch_info": {
+    "team": "darwin",
+    "indices_used": [],
+    "insights_retrieved": 0
+  },
+  "test_cases": [
+    {
+      "id": "TC-001",
+      "name": "Agregar producto al carrito con cantidad v\u00e1lida",
+      "description": "Verifica que un usuario pueda agregar un producto disponible al carrito de compras con una cantidad v\u00e1lida y que el sistema actualice correctamente el total.",
+      "priority": "High",
+      "preconditions": "El usuario debe estar autenticado en la plataforma y debe haber productos disponibles en el cat\u00e1logo.",
+      "expectedResult": "El producto se agrega al carrito, se muestra la cantidad correcta y el total se actualiza reflejando el precio del producto multiplicado por la cantidad.",
+      "testData": "Producto: Laptop Dell XPS 13, Cantidad: 2, Precio unitario: $999.99, Total esperado: $1999.98",
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "Navegar al cat\u00e1logo de productos y seleccionar un producto disponible."
+        },
+        {
+          "step_number": 2,
+          "description": "Ingresar la cantidad deseada (2 unidades) en el campo de cantidad."
+        },
+        {
+          "step_number": 3,
+          "description": "Hacer clic en el bot\u00f3n 'Agregar al carrito'."
+        },
+        {
+          "step_number": 4,
+          "description": "Verificar que el producto aparece en el carrito con la cantidad correcta y el total se actualiza."
+        }
+      ]
+    },
+    {
+      "id": "TC-002",
+      "name": "Eliminar producto del carrito correctamente",
+      "description": "Valida que el usuario pueda eliminar un producto del carrito de compras y que el total se recalcule autom\u00e1ticamente sin incluir el producto eliminado.",
+      "priority": "High",
+      "preconditions": "El carrito debe contener al menos un producto agregado previamente.",
+      "expectedResult": "El producto se elimina del carrito, desaparece de la lista de art\u00edculos y el total se recalcula correctamente sin incluir su precio.",
+      "testData": "Producto a eliminar: Mouse Logitech MX Master 3, Precio: $99.99, Total anterior: $1999.98, Total esperado despu\u00e9s: $1899.99",
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "Abrir el carrito de compras que contiene m\u00faltiples productos."
+        },
+        {
+          "step_number": 2,
+          "description": "Localizar el producto a eliminar (Mouse Logitech MX Master 3)."
+        },
+        {
+          "step_number": 3,
+          "description": "Hacer clic en el bot\u00f3n 'Eliminar' o icono de papelera junto al producto."
+        },
+        {
+          "step_number": 4,
+          "description": "Verificar que el producto desaparece del carrito y el total se actualiza correctamente."
+        }
+      ]
+    },
+    {
+      "id": "TC-003",
+      "name": "Actualizar cantidad de producto en carrito con validaci\u00f3n de stock",
+      "description": "Comprueba que el usuario pueda modificar la cantidad de un producto existente en el carrito y que el sistema valide que la cantidad no exceda el stock disponible.",
+      "priority": "High",
+      "preconditions": "El carrito debe contener al menos un producto y el sistema debe tener informaci\u00f3n de stock disponible.",
+      "expectedResult": "La cantidad se actualiza correctamente, el total se recalcula, y si se intenta exceder el stock disponible, se muestra un mensaje de error indicando la cantidad m\u00e1xima permitida.",
+      "testData": "Producto: Teclado Mec\u00e1nico Corsair K95, Cantidad actual: 1, Nueva cantidad: 5, Stock disponible: 3, Mensaje esperado: 'Solo hay 3 unidades disponibles'",
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "Abrir el carrito de compras con productos agregados."
+        },
+        {
+          "step_number": 2,
+          "description": "Localizar el producto cuya cantidad se desea modificar (Teclado Mec\u00e1nico Corsair K95)."
+        },
+        {
+          "step_number": 3,
+          "description": "Cambiar la cantidad a 5 unidades en el campo de cantidad."
+        },
+        {
+          "step_number": 4,
+          "description": "Hacer clic en el bot\u00f3n 'Actualizar' o presionar Enter."
+        },
+        {
+          "step_number": 5,
+          "description": "Verificar que aparece el mensaje de error indicando que solo hay 3 unidades disponibles y la cantidad no se actualiza."
+        }
+      ]
+    },
+    {
+      "id": "TC-004",
+      "name": "Validar c\u00e1lculo correcto de total con m\u00faltiples productos y descuentos",
+      "description": "Valida que el sistema calcule correctamente el total del carrito cuando contiene m\u00faltiples productos con diferentes precios y aplica descuentos o c\u00f3digos promocionales.",
+      "priority": "Medium",
+      "preconditions": "El carrito debe contener al menos 3 productos diferentes y debe haber un c\u00f3digo de descuento v\u00e1lido disponible en el sistema.",
+      "expectedResult": "El total se calcula correctamente sumando todos los productos, aplicando el descuento proporcionalmente y mostrando el desglose de subtotal, descuento e impuestos.",
+      "testData": "Producto 1: Monitor LG 27'' ($349.99 x 1), Producto 2: Laptop ($999.99 x 1), Producto 3: Mouse ($99.99 x 2), C\u00f3digo descuento: PROMO20 (20% descuento), Subtotal: $1549.96, Descuento: $309.99, Total esperado: $1239.97",
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "Agregar tres productos diferentes al carrito con cantidades variadas."
+        },
+        {
+          "step_number": 2,
+          "description": "Verificar que el subtotal se calcula correctamente como suma de todos los productos."
+        },
+        {
+          "step_number": 3,
+          "description": "Ingresar el c\u00f3digo de descuento 'PROMO20' en el campo de c\u00f3digo promocional."
+        },
+        {
+          "step_number": 4,
+          "description": "Hacer clic en el bot\u00f3n 'Aplicar descuento'."
+        },
+        {
+          "step_number": 5,
+          "description": "Verificar que el descuento se aplica correctamente (20% del subtotal) y el total final es correcto."
+        }
+      ]
+    },
+    {
+      "id": "TC-005",
+      "name": "Carrito vac\u00edo muestra mensaje apropiado y opciones de navegaci\u00f3n",
+      "description": "Comprueba que cuando el carrito est\u00e1 vac\u00edo, el sistema muestra un mensaje informativo claro y proporciona opciones para que el usuario contin\u00fae comprando o regrese al cat\u00e1logo.",
+      "priority": "Medium",
+      "preconditions": "El carrito debe estar completamente vac\u00edo sin productos agregados.",
+      "expectedResult": "Se muestra un mensaje 'Tu carrito est\u00e1 vac\u00edo' con opciones de navegaci\u00f3n como 'Continuar comprando' o 'Volver al cat\u00e1logo' y no se muestran campos de pago.",
+      "testData": "Mensaje esperado: 'Tu carrito est\u00e1 vac\u00edo', Botones disponibles: 'Continuar comprando', 'Volver al cat\u00e1logo'",
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "Acceder a la p\u00e1gina del carrito de compras sin haber agregado productos previamente."
+        },
+        {
+          "step_number": 2,
+          "description": "Verificar que se muestra el mensaje 'Tu carrito est\u00e1 vac\u00edo'."
+        },
+        {
+          "step_number": 3,
+          "description": "Confirmar que aparecen los botones de navegaci\u00f3n 'Continuar comprando' y 'Volver al cat\u00e1logo'."
+        },
+        {
+          "step_number": 4,
+          "description": "Hacer clic en 'Continuar comprando' y verificar que redirige al cat\u00e1logo de productos."
+        }
+      ]
+    }
+  ]
+}

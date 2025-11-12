@@ -219,11 +219,11 @@ REQUERIMIENTOS:
 
 Proporciona los casos de prueba en formato JSON."""
             
-            # Usar Prompt Caching con la nueva versión de API
+            # Usar Prompt Caching con la versión correcta de API
             response = self.bedrock_client.invoke_model(
                 modelId=self.model_id,
                 body=json.dumps({
-                    "anthropic_version": "bedrock-2023-06-01",  # Nueva versión con caching
+                    "anthropic_version": "bedrock-2023-05-31",  # Versión correcta para Bedrock
                     "max_tokens": 2000,
                     "temperature": 0.1,
                     "system": [
