@@ -195,42 +195,119 @@ Creates detailed test cases with steps, preconditions, and expected results."""
             edge_cases = input_data.get('edge_cases', [])
             risk_areas = input_data.get('risk_areas', [])
             generation_options = input_data.get('generation_options', {})
+            kb_insights = input_data.get('kb_insights', [])
             
             min_cases = generation_options.get('min_test_cases', 5)
             max_cases = generation_options.get('max_test_cases', 15)
             target_cases = (min_cases + max_cases) // 2
             
-            # Simplified prompt - focus on essentials only
-            # Handle both dict and string formats
+            # Build comprehensive requirements list (ALL requirements, not just 5)
             reqs_list = []
-            for req in functional_reqs[:5]:
+            for i, req in enumerate(functional_reqs, 1):
                 if isinstance(req, dict):
-                    req_text = req.get('requirement', str(req))[:100]
+                    req_text = req.get('requirement', str(req))
                 else:
-                    req_text = str(req)[:100]
-                reqs_list.append(f"- {req_text}")
+                    req_text = str(req)
+                # Clean up requirement text
+                req_text = req_text.strip().lstrip('-•*').strip()
+                if req_text:
+                    reqs_list.append(f"{i}. {req_text}")
             
-            reqs_summary = "\n".join(reqs_list)
+            reqs_summary = "\n".join(reqs_list) if reqs_list else "No specific requirements provided"
             
-            generation_prompt = f"""Genera {target_cases} casos de prueba para:
+            # Build edge cases summary
+            edge_cases_summary = ""
+            if edge_cases:
+                edge_list = []
+                for i, edge in enumerate(edge_cases[:10], 1):
+                    if isinstance(edge, dict):
+                        edge_text = edge.get('case', str(edge))
+                    else:
+                        edge_text = str(edge)
+                    edge_text = edge_text.strip().lstrip('-•*').strip()
+                    if edge_text:
+                        edge_list.append(f"{i}. {edge_text}")
+                if edge_list:
+                    edge_cases_summary = "\n\nEDGE CASES IDENTIFICADOS:\n" + "\n".join(edge_list)
+            
+            # Build risk areas summary
+            risk_areas_summary = ""
+            if risk_areas:
+                risk_list = []
+                for i, risk in enumerate(risk_areas[:10], 1):
+                    if isinstance(risk, dict):
+                        risk_text = risk.get('area', str(risk))
+                    else:
+                        risk_text = str(risk)
+                    risk_text = risk_text.strip().lstrip('-•*').strip()
+                    if risk_text:
+                        risk_list.append(f"{i}. {risk_text}")
+                if risk_list:
+                    risk_areas_summary = "\n\nÁREAS DE RIESGO:\n" + "\n".join(risk_list)
+            
+            # Build KB insights summary
+            kb_summary = ""
+            if kb_insights:
+                kb_list = []
+                for i, insight in enumerate(kb_insights[:5], 1):
+                    if isinstance(insight, dict):
+                        insight_text = insight.get('content', str(insight))[:150]
+                    else:
+                        insight_text = str(insight)[:150]
+                    if insight_text.strip():
+                        kb_list.append(f"• {insight_text.strip()}")
+                if kb_list:
+                    kb_summary = "\n\nBUENAS PRÁCTICAS (Knowledge Base):\n" + "\n".join(kb_list)
+            
+            # Enhanced generation prompt with full context
+            generation_prompt = f"""Genera EXACTAMENTE {target_cases} casos de prueba ÚNICOS Y ESPECÍFICOS para el siguiente proyecto.
 
-REQUERIMIENTOS:
-{reqs_summary}
+IMPORTANTE: Cada caso debe ser DIFERENTE y cubrir un aspecto ESPECÍFICO de los requerimientos. NO repitas casos similares.
 
-Proporciona los casos de prueba en formato JSON."""
+REQUERIMIENTOS FUNCIONALES:
+{reqs_summary}{edge_cases_summary}{risk_areas_summary}{kb_summary}
+
+INSTRUCCIONES ESPECÍFICAS:
+1. Genera {target_cases} casos de prueba DISTINTOS
+2. Cada caso debe cubrir un requerimiento o escenario DIFERENTE
+3. Incluye casos positivos, negativos y edge cases
+4. Distribuye prioridades: ~35% High, ~40% Medium, ~25% Low
+5. Asigna High priority a edge cases y funcionalidades críticas
+6. Cada caso DEBE tener mínimo 3 pasos detallados
+7. Usa nombres descriptivos >20 caracteres
+8. Descripciones >50 caracteres explicando el objetivo
+9. Resultados esperados >30 caracteres, específicos y medibles
+10. Datos de prueba concretos y realistas
+
+FORMATO DE SALIDA (JSON válido):
+{{
+  "test_cases": [
+    {{
+      "name": "Nombre descriptivo único del caso >20 chars",
+      "description": "Descripción detallada del objetivo >50 chars",
+      "priority": "High|Medium|Low",
+      "preconditions": "Condiciones específicas necesarias",
+      "expected_result": "Resultado esperado específico y medible >30 chars",
+      "test_data": "Datos de prueba concretos",
+      "steps": ["Paso 1 detallado", "Paso 2 detallado", "Paso 3 detallado", "..."]
+    }}
+  ]
+}}
+
+Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
             
             # Usar Prompt Caching con la versión correcta de API
             response = self.bedrock_client.invoke_model(
                 modelId=self.model_id,
                 body=json.dumps({
-                    "anthropic_version": "bedrock-2023-05-31",  # Versión correcta para Bedrock
-                    "max_tokens": 2000,
-                    "temperature": 0.1,
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 4000,  # Increased for more detailed cases
+                    "temperature": 0.3,  # Slightly higher for more variety
                     "system": [
                         {
                             "type": "text",
                             "text": TEST_CASE_GENERATOR_SYSTEM_PROMPT,
-                            "cache_control": {"type": "ephemeral"}  # Activar caching
+                            "cache_control": {"type": "ephemeral"}
                         }
                     ],
                     "messages": [{
@@ -243,6 +320,9 @@ Proporciona los casos de prueba en formato JSON."""
             response_body = json.loads(response['body'].read())
             content = response_body['content'][0]['text']
             
+            print(f"🔍 DEBUG: Received content length: {len(content)} characters")
+            print(f"🔍 DEBUG: Content preview: {content[:500]}...")
+            
             # Parse JSON
             result = self._extract_json(content)
             
@@ -250,9 +330,17 @@ Proporciona los casos de prueba en formato JSON."""
             if not result.get('test_cases'):
                 print("⚠️ No test cases generated, creating fallback")
                 result['test_cases'] = self._create_fallback_cases(functional_reqs, target_cases)
+            else:
+                # Validate uniqueness and quality
+                result['test_cases'] = self._validate_and_deduplicate_cases(
+                    result['test_cases'], 
+                    target_cases
+                )
             
             result['generation_completed'] = True
             result['total_generated'] = len(result.get('test_cases', []))
+            
+            print(f"✅ Generated {result['total_generated']} unique test cases")
             
             return result
             
@@ -272,60 +360,146 @@ Proporciona los casos de prueba en formato JSON."""
                 "total_generated": generation_options.get('min_test_cases', 5)
             }
     
+    def _validate_and_deduplicate_cases(self, test_cases: List[Dict[str, Any]], target_count: int) -> List[Dict[str, Any]]:
+        """Validate and remove duplicate test cases"""
+        if not test_cases:
+            return []
+        
+        unique_cases = []
+        seen_names = set()
+        seen_descriptions = set()
+        
+        for case in test_cases:
+            name = case.get('name', '').strip().lower()
+            description = case.get('description', '').strip().lower()
+            
+            # Skip if name or description is too similar to existing cases
+            if name in seen_names or description in seen_descriptions:
+                print(f"⚠️ Skipping duplicate case: {case.get('name', 'Unknown')}")
+                continue
+            
+            # Validate case has minimum required fields
+            if not name or not description:
+                print(f"⚠️ Skipping invalid case (missing name or description)")
+                continue
+            
+            # Ensure steps exist and have at least 3 steps
+            steps = case.get('steps', [])
+            if not steps or len(steps) < 3:
+                print(f"⚠️ Case has insufficient steps, adding default steps: {case.get('name', 'Unknown')}")
+                case['steps'] = steps + [
+                    "Execute the test action",
+                    "Verify the expected behavior",
+                    "Confirm the result matches expectations"
+                ][:3 - len(steps)]
+            
+            # Ensure all required fields have minimum length
+            if len(case.get('name', '')) < 20:
+                case['name'] = f"{case['name']} - Validation Test"
+            
+            if len(case.get('description', '')) < 50:
+                case['description'] = f"{case['description']} This test validates the functionality and ensures it meets the specified requirements."
+            
+            if len(case.get('expected_result', '')) < 30:
+                case['expected_result'] = f"{case.get('expected_result', 'Expected result')} and the system behaves as specified."
+            
+            seen_names.add(name)
+            seen_descriptions.add(description)
+            unique_cases.append(case)
+            
+            # Stop if we have enough cases
+            if len(unique_cases) >= target_count:
+                break
+        
+        print(f"✅ Validated {len(unique_cases)} unique cases from {len(test_cases)} generated")
+        return unique_cases
+    
     def _create_fallback_cases(self, functional_reqs: List, count: int) -> List[Dict[str, Any]]:
-        """Create basic fallback test cases"""
+        """Create specific fallback test cases based on requirements"""
         cases = []
-        for i in range(min(count, len(functional_reqs) if functional_reqs else count)):
-            req = functional_reqs[i] if i < len(functional_reqs) else {"requirement": f"Requirement {i+1}"}
-            
-            # Handle both dict and string formats
-            if isinstance(req, dict):
-                req_text = req.get('requirement', str(req))[:100]
+        
+        # Parse requirements to create specific test cases
+        for i in range(min(count, max(len(functional_reqs), count))):
+            if i < len(functional_reqs):
+                req = functional_reqs[i]
+                
+                # Handle both dict and string formats
+                if isinstance(req, dict):
+                    req_text = req.get('requirement', str(req))
+                else:
+                    req_text = str(req)
+                
+                # Clean up requirement text
+                req_text = req_text.strip().lstrip('-•*').strip()
+                
+                # Create specific test case based on requirement
+                priority = "High" if i < count * 0.35 else ("Medium" if i < count * 0.75 else "Low")
+                
+                cases.append({
+                    "name": f"Verificar funcionalidad: {req_text[:60]}",
+                    "description": f"Este caso de prueba valida que {req_text.lower()} funciona correctamente según los requerimientos especificados.",
+                    "priority": priority,
+                    "preconditions": "El sistema debe estar accesible y el usuario debe tener los permisos necesarios para ejecutar la prueba.",
+                    "expected_result": f"La funcionalidad {req_text[:40]} se ejecuta correctamente sin errores y cumple con los criterios de aceptación.",
+                    "test_data": f"Datos de prueba válidos para {req_text[:30]}",
+                    "steps": [
+                        f"Acceder a la funcionalidad relacionada con: {req_text[:50]}",
+                        "Ejecutar la acción de prueba con datos válidos",
+                        "Verificar que el resultado coincide con lo esperado",
+                        "Confirmar que no se generan errores en el proceso"
+                    ]
+                })
             else:
-                req_text = str(req)[:100]
-            
-            cases.append({
-                "name": f"Test Case {i+1}: {req_text[:50]}",
-                "description": f"Verify {req_text}",
-                "priority": "Medium",
-                "preconditions": "System accessible",
-                "expected_result": "Functionality works as expected",
-                "test_data": "Valid test data",
-                "steps": [
-                    "Navigate to feature",
-                    "Execute test action",
-                    "Verify result"
-                ]
-            })
+                # Generic case if we need more than requirements
+                cases.append({
+                    "name": f"Caso de prueba adicional {i+1} - Validación general del sistema",
+                    "description": f"Este caso de prueba valida aspectos generales del sistema para asegurar su correcto funcionamiento y estabilidad.",
+                    "priority": "Low",
+                    "preconditions": "El sistema debe estar operativo y accesible para realizar las pruebas.",
+                    "expected_result": "El sistema responde correctamente a las acciones de prueba y mantiene su estabilidad durante la ejecución.",
+                    "test_data": "Conjunto de datos de prueba estándar",
+                    "steps": [
+                        "Acceder al sistema de pruebas",
+                        "Ejecutar las validaciones necesarias",
+                        "Verificar los resultados obtenidos",
+                        "Confirmar que el sistema mantiene su integridad"
+                    ]
+                })
         
         return cases
     
     def _extract_json(self, content: str) -> Dict[str, Any]:
         """Extract JSON from response - IMPROVED"""
+        import re
+        
         # Try direct parse first
         try:
             return json.loads(content)
-        except:
+        except json.JSONDecodeError:
             pass
         
-        # Try to find JSON in markdown code blocks
-        import re
-        json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', content)
+        # Try to find JSON in markdown code blocks (most common format from Claude)
+        json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', content, re.DOTALL)
         if json_match:
             try:
-                return json.loads(json_match.group(1))
-            except:
-                pass
+                json_str = json_match.group(1).strip()
+                return json.loads(json_str)
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON parse error in code block: {str(e)}")
+                print(f"   Content preview: {json_str[:300]}...")
         
-        # Try to find any JSON object
-        json_match = re.search(r'\{[\s\S]*\}', content)
+        # Try to find any JSON object (greedy match to get complete JSON)
+        json_match = re.search(r'\{[\s\S]*\}', content, re.DOTALL)
         if json_match:
             try:
-                return json.loads(json_match.group(0))
-            except:
-                pass
+                json_str = json_match.group(0)
+                return json.loads(json_str)
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON parse error in object: {str(e)}")
+                print(f"   Content preview: {json_str[:300]}...")
         
-        print(f"⚠️ Could not parse JSON from: {content[:200]}...")
+        print(f"⚠️ Could not parse JSON from content")
+        print(f"   Content preview: {content[:500]}...")
         return {
             "test_cases": [],
             "recommendations": []

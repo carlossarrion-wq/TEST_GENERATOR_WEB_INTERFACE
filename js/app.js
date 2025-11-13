@@ -462,6 +462,19 @@ function viewTestSteps(testCaseId) {
     
     modalTitle.textContent = `${testCase.id}: ${testCase.name}`;
     
+    // Build steps HTML
+    let stepsListHTML = '';
+    if (testCase.steps && testCase.steps.length > 0) {
+        stepsListHTML = '<ol style="margin: 0; padding-left: 1.5rem;">';
+        testCase.steps.forEach(step => {
+            const stepText = typeof step === 'object' ? step.description : step;
+            stepsListHTML += `<li style="margin-bottom: 0.5rem; color: #4a5568;">${stepText}</li>`;
+        });
+        stepsListHTML += '</ol>';
+    } else {
+        stepsListHTML = '<p style="color: #a0aec0; font-style: italic;">No steps defined</p>';
+    }
+    
     let stepsHTML = `
         <div style="margin-bottom: 1.5rem;">
             <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Description</h4>
@@ -469,8 +482,18 @@ function viewTestSteps(testCaseId) {
         </div>
         
         <div style="margin-bottom: 1.5rem;">
+            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Priority</h4>
+            <span class="priority-badge priority-${testCase.priority.toLowerCase()}">${testCase.priority}</span>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
             <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Preconditions</h4>
             <p style="color: #4a5568;">${testCase.preconditions}</p>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Test Steps</h4>
+            ${stepsListHTML}
         </div>
         
         <div style="margin-bottom: 1.5rem;">
@@ -748,6 +771,25 @@ function editTestCase(testCaseId) {
     
     modalTitle.textContent = `Edit ${testCase.id}`;
     
+    // Build steps HTML for editing
+    let stepsHTML = '';
+    if (testCase.steps && testCase.steps.length > 0) {
+        testCase.steps.forEach((step, index) => {
+            const stepText = typeof step === 'object' ? step.description : step;
+            stepsHTML += `
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                    <span style="min-width: 30px; color: #718096; font-weight: 500;">${index + 1}.</span>
+                    <input type="text" class="form-control edit-step-input" data-step-index="${index}" value="${stepText}" style="flex: 1;">
+                    <button class="btn-icon btn-icon-delete" onclick="removeStep(${index})" title="Remove step" style="flex-shrink: 0;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+        });
+    }
+    
     modalBody.innerHTML = `
         <div class="form-group" style="margin-bottom: 1rem;">
             <label for="edit-name">Test Case Name</label>
@@ -774,6 +816,19 @@ function editTestCase(testCaseId) {
         </div>
         
         <div class="form-group" style="margin-bottom: 1rem;">
+            <label>Test Steps</label>
+            <div id="edit-steps-container" style="margin-top: 0.5rem;">
+                ${stepsHTML || '<p style="color: #a0aec0; font-style: italic; margin: 0;">No steps defined</p>'}
+            </div>
+            <button class="btn-secondary" onclick="addNewStep()" style="margin-top: 0.5rem; font-size: 0.875rem; padding: 0.5rem 1rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add Step
+            </button>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1rem;">
             <label for="edit-test-data">Test Data</label>
             <textarea id="edit-test-data" class="form-control" rows="2">${testCase.testData}</textarea>
         </div>
@@ -792,6 +847,62 @@ function editTestCase(testCaseId) {
     modal.classList.add('show');
 }
 
+// Add new step to test case being edited
+function addNewStep() {
+    const container = document.getElementById('edit-steps-container');
+    const currentSteps = container.querySelectorAll('.edit-step-input');
+    const newIndex = currentSteps.length;
+    
+    const newStepHTML = `
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+            <span style="min-width: 30px; color: #718096; font-weight: 500;">${newIndex + 1}.</span>
+            <input type="text" class="form-control edit-step-input" data-step-index="${newIndex}" value="" placeholder="Enter step description..." style="flex: 1;">
+            <button class="btn-icon btn-icon-delete" onclick="removeStep(${newIndex})" title="Remove step" style="flex-shrink: 0;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    // Remove "No steps defined" message if it exists
+    const noStepsMsg = container.querySelector('p');
+    if (noStepsMsg) {
+        noStepsMsg.remove();
+    }
+    
+    container.insertAdjacentHTML('beforeend', newStepHTML);
+}
+
+// Remove step from test case being edited
+function removeStep(stepIndex) {
+    const container = document.getElementById('edit-steps-container');
+    const allSteps = container.querySelectorAll('.edit-step-input');
+    
+    if (allSteps.length <= 1) {
+        alert('A test case must have at least one step');
+        return;
+    }
+    
+    // Remove the step
+    allSteps[stepIndex].closest('div').remove();
+    
+    // Renumber remaining steps
+    const remainingSteps = container.querySelectorAll('.edit-step-input');
+    remainingSteps.forEach((input, index) => {
+        input.dataset.stepIndex = index;
+        const numberSpan = input.previousElementSibling;
+        if (numberSpan) {
+            numberSpan.textContent = `${index + 1}.`;
+        }
+        // Update remove button onclick
+        const removeBtn = input.nextElementSibling;
+        if (removeBtn) {
+            removeBtn.setAttribute('onclick', `removeStep(${index})`);
+        }
+    });
+}
+
 // Save test case edits
 function saveTestCaseEdit(testCaseId) {
     const testCase = testCases.find(tc => tc.id === testCaseId);
@@ -804,6 +915,27 @@ function saveTestCaseEdit(testCaseId) {
     testCase.preconditions = document.getElementById('edit-preconditions').value;
     testCase.testData = document.getElementById('edit-test-data').value;
     testCase.expectedResult = document.getElementById('edit-expected-result').value;
+    
+    // Get updated steps
+    const stepInputs = document.querySelectorAll('.edit-step-input');
+    const updatedSteps = [];
+    stepInputs.forEach((input, index) => {
+        const stepText = input.value.trim();
+        if (stepText) {
+            updatedSteps.push({
+                number: index + 1,
+                description: stepText
+            });
+        }
+    });
+    
+    // Update steps (ensure at least one step)
+    if (updatedSteps.length > 0) {
+        testCase.steps = updatedSteps;
+    } else {
+        alert('Please add at least one test step');
+        return;
+    }
     
     // Update the display
     displayTestCases();

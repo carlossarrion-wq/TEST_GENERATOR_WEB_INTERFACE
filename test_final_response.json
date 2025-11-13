@@ -1,8 +1,8 @@
 {
   "message": "Test plan generated with LangChain specialized workflow",
-  "plan_id": "TP-1762968330-9243",
+  "plan_id": "TP-1763034389-9506",
   "test_cases_created": 4,
-  "execution_time_seconds": 9.82,
+  "execution_time_seconds": 9.48,
   "model_used": "langchain-haiku-4.5-specialized",
   "processing_method": "specialized_workflow_complete",
   "tools_used": [
@@ -28,12 +28,12 @@
       "description": "Verifica que un nuevo usuario pueda crear su perfil correctamente cuando proporciona todos los datos requeridos de forma v\u00e1lida y completa.",
       "priority": "High",
       "preconditions": "El usuario debe estar registrado en el sistema pero sin perfil creado a\u00fan.",
-      "expectedResult": "El sistema crea el perfil exitosamente, muestra confirmaci\u00f3n y redirige al panel de usuario con los datos guardados correctamente.",
+      "expectedResult": "El sistema crea el perfil exitosamente, muestra confirmaci\u00f3n visual y redirige al panel de usuario con los datos guardados.",
       "testData": "Nombre: Juan P\u00e9rez, Email: juan.perez@example.com, Tel\u00e9fono: +34912345678, Edad: 28, Pa\u00eds: Espa\u00f1a",
       "steps": [
         {
           "step_number": 1,
-          "description": "Acceder a la secci\u00f3n de creaci\u00f3n de perfil desde el men\u00fa principal."
+          "description": "Acceder a la secci\u00f3n 'Crear Perfil' desde el men\u00fa principal."
         },
         {
           "step_number": 2,
@@ -45,34 +45,96 @@
         },
         {
           "step_number": 4,
-          "description": "Verificar que aparece el mensaje de confirmaci\u00f3n 'Perfil creado exitosamente'."
+          "description": "Verificar que aparece mensaje de confirmaci\u00f3n 'Perfil creado exitosamente'."
         },
         {
           "step_number": 5,
-          "description": "Confirmar que los datos se han guardado correctamente en la base de datos."
+          "description": "Confirmar que los datos se muestran correctamente en la p\u00e1gina de perfil."
         }
       ]
     },
     {
       "id": "TC-002",
-      "name": "Validaci\u00f3n de campos obligatorios vac\u00edos en formulario de perfil",
-      "description": "Comprueba que el sistema valide y rechace el env\u00edo del formulario cuando faltan campos obligatorios como nombre, email o tel\u00e9fono.",
+      "name": "Rechazo de creaci\u00f3n de perfil con campos obligatorios vac\u00edos",
+      "description": "Valida que el sistema no permita crear un perfil cuando faltan campos obligatorios y muestre mensajes de error espec\u00edficos para cada campo.",
       "priority": "High",
-      "preconditions": "El usuario debe estar en la p\u00e1gina de creaci\u00f3n o edici\u00f3n de perfil.",
-      "expectedResult": "El sistema muestra mensajes de error espec\u00edficos para cada campo vac\u00edo sin permitir guardar el perfil.",
-      "testData": "Nombre: '', Email: 'usuario@example.com', Tel\u00e9fono: '', Edad: 25, Pa\u00eds: Espa\u00f1a",
+      "preconditions": "El usuario debe estar en la p\u00e1gina de creaci\u00f3n de perfil.",
+      "expectedResult": "El sistema muestra mensajes de validaci\u00f3n indicando qu\u00e9 campos son obligatorios y no permite guardar el perfil.",
+      "testData": "Nombre: '', Email: '', Tel\u00e9fono: '', Edad: '', Pa\u00eds: ''",
       "steps": [
         {
           "step_number": 1,
-          "description": "Acceder al formulario de creaci\u00f3n de perfil."
+          "description": "Acceder a la secci\u00f3n 'Crear Perfil'."
         },
         {
           "step_number": 2,
-          "description": "Dejar vac\u00edos los campos de nombre y tel\u00e9fono."
+          "description": "Dejar todos los campos vac\u00edos sin completar informaci\u00f3n."
         },
         {
           "step_number": 3,
-          "description": "Completar los campos de email, edad y pa\u00eds."
+          "description": "Hacer clic en el bot\u00f3n 'Guardar Perfil'."
+        },
+        {
+          "step_number": 4,
+          "description": "Verificar que aparecen mensajes de error para cada campo obligatorio."
+        },
+        {
+          "step_number": 5,
+          "description": "Confirmar que el perfil no se crea y permanece en la p\u00e1gina de formulario."
+        }
+      ]
+    },
+    {
+      "id": "TC-003",
+      "name": "Actualizaci\u00f3n de perfil existente con datos modificados",
+      "description": "Comprueba que un usuario pueda actualizar su perfil existente modificando datos como tel\u00e9fono, pa\u00eds y otros campos sin perder informaci\u00f3n previa.",
+      "priority": "Medium",
+      "preconditions": "El usuario debe tener un perfil creado previamente en el sistema.",
+      "expectedResult": "El sistema actualiza los datos modificados, mantiene los datos no modificados y muestra confirmaci\u00f3n de actualizaci\u00f3n.",
+      "testData": "Tel\u00e9fono anterior: +34912345678, Tel\u00e9fono nuevo: +34987654321, Pa\u00eds anterior: Espa\u00f1a, Pa\u00eds nuevo: Portugal",
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "Acceder a la p\u00e1gina de 'Editar Perfil' desde el panel de usuario."
+        },
+        {
+          "step_number": 2,
+          "description": "Modificar el n\u00famero de tel\u00e9fono y el pa\u00eds de residencia."
+        },
+        {
+          "step_number": 3,
+          "description": "Dejar sin cambios los dem\u00e1s campos como nombre y email."
+        },
+        {
+          "step_number": 4,
+          "description": "Hacer clic en el bot\u00f3n 'Guardar Cambios'."
+        },
+        {
+          "step_number": 5,
+          "description": "Verificar que aparece mensaje 'Perfil actualizado correctamente' y los nuevos datos se reflejan en la p\u00e1gina."
+        }
+      ]
+    },
+    {
+      "id": "TC-004",
+      "name": "Validaci\u00f3n de formato de email inv\u00e1lido en perfil",
+      "description": "Valida que el sistema rechace direcciones de correo electr\u00f3nico con formato incorrecto y muestre mensaje de error espec\u00edfico.",
+      "priority": "Medium",
+      "preconditions": "El usuario est\u00e1 en la p\u00e1gina de creaci\u00f3n o edici\u00f3n de perfil.",
+      "expectedResult": "El sistema muestra error 'Formato de email inv\u00e1lido' y no permite guardar el perfil con email mal formateado.",
+      "testData": "Email inv\u00e1lido: usuario@, Email inv\u00e1lido: usuario.com, Email inv\u00e1lido: usuario @example.com",
+      "steps": [
+        {
+          "step_number": 1,
+          "description": "Acceder a la secci\u00f3n de creaci\u00f3n o edici\u00f3n de perfil."
+        },
+        {
+          "step_number": 2,
+          "description": "Introducir un email con formato incorrecto como 'usuario@' o 'usuario.com'."
+        },
+        {
+          "step_number": 3,
+          "description": "Completar los dem\u00e1s campos con datos v\u00e1lidos."
         },
         {
           "step_number": 4,
@@ -80,69 +142,7 @@
         },
         {
           "step_number": 5,
-          "description": "Verificar que aparecen mensajes de validaci\u00f3n indicando que nombre y tel\u00e9fono son obligatorios."
-        }
-      ]
-    },
-    {
-      "id": "TC-003",
-      "name": "Rechazo de email inv\u00e1lido o duplicado en perfil de usuario",
-      "description": "Valida que el sistema rechace emails con formato incorrecto o que ya existan en la base de datos para evitar duplicados.",
-      "priority": "High",
-      "preconditions": "Debe existir un usuario con email juan.perez@example.com registrado previamente en el sistema.",
-      "expectedResult": "El sistema muestra un mensaje de error indicando que el email es inv\u00e1lido o ya est\u00e1 registrado, sin guardar el perfil.",
-      "testData": "Email inv\u00e1lido: 'usuario@invalido', Email duplicado: 'juan.perez@example.com'",
-      "steps": [
-        {
-          "step_number": 1,
-          "description": "Acceder al formulario de creaci\u00f3n de perfil."
-        },
-        {
-          "step_number": 2,
-          "description": "Intentar ingresar un email con formato inv\u00e1lido como 'usuario@invalido'."
-        },
-        {
-          "step_number": 3,
-          "description": "Hacer clic en 'Guardar Perfil' y verificar el mensaje de error."
-        },
-        {
-          "step_number": 4,
-          "description": "Limpiar el campo y intentar con un email que ya existe en el sistema."
-        },
-        {
-          "step_number": 5,
-          "description": "Confirmar que el sistema rechaza el email duplicado con mensaje espec\u00edfico."
-        }
-      ]
-    },
-    {
-      "id": "TC-004",
-      "name": "Actualizaci\u00f3n parcial de datos de perfil existente",
-      "description": "Verifica que un usuario pueda actualizar selectivamente ciertos campos de su perfil sin afectar los datos no modificados.",
-      "priority": "Medium",
-      "preconditions": "El usuario debe tener un perfil existente con datos completos en el sistema.",
-      "expectedResult": "El sistema actualiza solo los campos modificados, mantiene los datos no alterados y muestra confirmaci\u00f3n de cambios.",
-      "testData": "Tel\u00e9fono anterior: +34912345678, Tel\u00e9fono nuevo: +34987654321, Pa\u00eds anterior: Espa\u00f1a, Pa\u00eds nuevo: Portugal",
-      "steps": [
-        {
-          "step_number": 1,
-          "description": "Acceder a la secci\u00f3n de edici\u00f3n de perfil del usuario."
-        },
-        {
-          "step_number": 2,
-          "description": "Modificar solo el campo de tel\u00e9fono y pa\u00eds, dejando nombre y email sin cambios."
-        },
-        {
-          "step_number": 3,
-          "description": "Hacer clic en el bot\u00f3n 'Actualizar Perfil'."
-        },
-        {
-          "step_number": 4,
-          "description": "Verificar que aparece el mensaje 'Perfil actualizado correctamente'."
-        },
-        {
-          "step_number": 5,
-          "description": "Confirmar que solo tel\u00e9fono y pa\u00eds fueron modificados mientras nombre y email permanecen iguales."
+          "description": "Verificar que aparece mensaje de error de validaci\u00f3n de email y el perfil no se guarda."
         }
       ]
     }
