@@ -35,7 +35,15 @@ function initializeApp() {
 function updateGenerateButtonState() {
     const generateBtn = document.querySelector('.btn-primary');
     if (generateBtn) {
-        generateBtn.disabled = testCases.length > 0;
+        // Keep button enabled always
+        generateBtn.disabled = false;
+        
+        // Change button text after first generation
+        if (testCases.length > 0) {
+            generateBtn.textContent = 'Generar nuevo plan';
+        } else {
+            generateBtn.textContent = 'Generate Test Plan';
+        }
     }
 }
 
@@ -311,8 +319,8 @@ async function generateTestPlan() {
         document.getElementById('chat-section').style.display = 'block';
         document.getElementById('actions-section').style.display = 'block';
         
-        // Collapse the config section after successful generation
-        collapseConfigSection();
+        // Update button text to "Generar nuevo plan" after first generation
+        updateGenerateButtonState();
         
     } catch (error) {
         console.error("❌ ERROR EN LA GENERACIÓN:", error);
