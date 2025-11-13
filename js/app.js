@@ -42,7 +42,7 @@ function updateGenerateButtonState() {
         if (testCases.length > 0) {
             generateBtn.textContent = 'Generar nuevo plan';
         } else {
-            generateBtn.textContent = 'Generate Test Plan';
+            generateBtn.textContent = 'Generar Plan de Pruebas';
         }
     }
 }
@@ -208,12 +208,12 @@ async function generateTestPlan() {
     
     // Validation
     if (!title) {
-        alert('Please enter a test plan title');
+        alert('Por favor, introduce un título para el plan de pruebas');
         return;
     }
     
     if (!requirements) {
-        alert('Please enter functional requirements');
+        alert('Por favor, introduce los requisitos funcionales');
         return;
     }
     
@@ -228,7 +228,7 @@ async function generateTestPlan() {
     const btn = event.target;
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<div class="loading-spinner"></div> Generating test plan...';
+    btn.innerHTML = '<div class="loading-spinner"></div> Generando plan de pruebas...';
     
     try {
         // Log start of generation
@@ -328,22 +328,22 @@ async function generateTestPlan() {
         console.error("   └─ Detalles:", error);
         
         // Show detailed error message to user
-        let errorMessage = 'Error generating test plan:\n\n';
+        let errorMessage = 'Error al generar el plan de pruebas:\n\n';
         errorMessage += error.message + '\n\n';
         
         if (error.message.includes('CORS')) {
-            errorMessage += '⚠️ CORS Error detected!\n\n';
-            errorMessage += 'You need to serve this application from a web server.\n\n';
-            errorMessage += 'Quick fix:\n';
-            errorMessage += '1. Open terminal in this folder\n';
-            errorMessage += '2. Run: python -m http.server 8000\n';
-            errorMessage += '3. Open: http://localhost:8000\n';
+            errorMessage += '⚠️ Error CORS detectado!\n\n';
+            errorMessage += 'Necesitas servir esta aplicación desde un servidor web.\n\n';
+            errorMessage += 'Solución rápida:\n';
+            errorMessage += '1. Abre la terminal en esta carpeta\n';
+            errorMessage += '2. Ejecuta: python -m http.server 8000\n';
+            errorMessage += '3. Abre: http://localhost:8000\n';
         } else if (error.message.includes('Network') || error.message.includes('fetch')) {
-            errorMessage += '⚠️ Network/CORS Error!\n\n';
-            errorMessage += 'Possible causes:\n';
-            errorMessage += '- Opening HTML directly from file system (use a web server)\n';
-            errorMessage += '- API Gateway timeout (Lambda taking too long)\n';
-            errorMessage += '- Network connectivity issues\n';
+            errorMessage += '⚠️ Error de Red/CORS!\n\n';
+            errorMessage += 'Posibles causas:\n';
+            errorMessage += '- Abrir HTML directamente desde el sistema de archivos (usa un servidor web)\n';
+            errorMessage += '- Timeout del API Gateway (Lambda tardando demasiado)\n';
+            errorMessage += '- Problemas de conectividad de red\n';
         }
         
         alert(errorMessage);
@@ -418,6 +418,13 @@ function displayTestCases() {
     const tbody = document.getElementById('test-cases-tbody');
     tbody.innerHTML = '';
     
+    // Priority translations
+    const priorityTranslations = {
+        'High': 'Alta',
+        'Medium': 'Media',
+        'Low': 'Baja'
+    };
+    
     testCases.forEach(testCase => {
         const row = document.createElement('tr');
         row.style.cursor = 'pointer';
@@ -427,27 +434,30 @@ function displayTestCases() {
                 editTestCase(testCase.id);
             }
         };
+        
+        const translatedPriority = priorityTranslations[testCase.priority] || testCase.priority;
+        
         row.innerHTML = `
             <td><strong>${testCase.id}</strong></td>
             <td>${testCase.name}</td>
             <td>${testCase.description}</td>
-            <td><span class="priority-badge priority-${testCase.priority.toLowerCase()}">${testCase.priority}</span></td>
+            <td><span class="priority-badge priority-${testCase.priority.toLowerCase()}">${translatedPriority}</span></td>
             <td>${testCase.preconditions}</td>
             <td>${testCase.expectedResult}</td>
             <td>
                 <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                    <button class="btn-icon btn-icon-view" onclick="event.stopPropagation(); viewTestSteps('${testCase.id}')" title="View Steps">
+                    <button class="btn-icon btn-icon-view" onclick="event.stopPropagation(); viewTestSteps('${testCase.id}')" title="Ver Pasos">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </button>
-                    <button class="btn-icon btn-icon-edit" onclick="event.stopPropagation(); editTestCase('${testCase.id}')" title="Edit Test Case">
+                    <button class="btn-icon btn-icon-edit" onclick="event.stopPropagation(); editTestCase('${testCase.id}')" title="Editar Caso de Prueba">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                         </svg>
                     </button>
-                    <button class="btn-icon btn-icon-delete" onclick="event.stopPropagation(); deleteTestCase('${testCase.id}')" title="Delete Test Case">
+                    <button class="btn-icon btn-icon-delete" onclick="event.stopPropagation(); deleteTestCase('${testCase.id}')" title="Eliminar Caso de Prueba">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                         </svg>
@@ -483,34 +493,42 @@ function viewTestSteps(testCaseId) {
         stepsListHTML = '<p style="color: #a0aec0; font-style: italic;">No steps defined</p>';
     }
     
+    // Translate priority
+    const priorityTranslations = {
+        'High': 'Alta',
+        'Medium': 'Media',
+        'Low': 'Baja'
+    };
+    const translatedPriority = priorityTranslations[testCase.priority] || testCase.priority;
+    
     let stepsHTML = `
         <div style="margin-bottom: 1.5rem;">
-            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Description</h4>
+            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Descripción</h4>
             <p style="color: #4a5568;">${testCase.description}</p>
         </div>
         
         <div style="margin-bottom: 1.5rem;">
-            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Priority</h4>
-            <span class="priority-badge priority-${testCase.priority.toLowerCase()}">${testCase.priority}</span>
+            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Prioridad</h4>
+            <span class="priority-badge priority-${testCase.priority.toLowerCase()}">${translatedPriority}</span>
         </div>
         
         <div style="margin-bottom: 1.5rem;">
-            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Preconditions</h4>
+            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Precondiciones</h4>
             <p style="color: #4a5568;">${testCase.preconditions}</p>
         </div>
         
         <div style="margin-bottom: 1.5rem;">
-            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Test Steps</h4>
+            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Pasos de Prueba</h4>
             ${stepsListHTML}
         </div>
         
         <div style="margin-bottom: 1.5rem;">
-            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Test Data</h4>
+            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Datos de Prueba</h4>
             <p style="color: #4a5568;">${testCase.testData}</p>
         </div>
         
         <div>
-            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Expected Result</h4>
+            <h4 style="color: #2d3748; margin-bottom: 0.5rem;">Resultado Esperado</h4>
             <p style="color: #4a5568;">${testCase.expectedResult}</p>
         </div>
     `;
@@ -554,7 +572,7 @@ async function sendChatMessage() {
     loadingDiv.innerHTML = `
         <div class="message-avatar">AI</div>
         <div class="message-content">
-            <div class="loading-spinner"></div> Processing your request...
+            <div class="loading-spinner"></div> Procesando tu solicitud...
         </div>
     `;
     chatMessages.appendChild(loadingDiv);
@@ -612,7 +630,7 @@ function addChatMessage(message, type) {
 // Save test plan
 function saveTestPlan() {
     if (!currentTestPlan) {
-        alert('No test plan to save');
+        alert('No hay plan de pruebas para guardar');
         return;
     }
     
@@ -637,13 +655,13 @@ function saveTestPlan() {
     savedPlans.push(currentTestPlan);
     localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
     
-    alert('Test plan saved successfully!');
+    alert('¡Plan de pruebas guardado exitosamente!');
 }
 
 // Export to CSV
 function exportToCSV() {
     if (!testCases.length) {
-        alert('No test cases to export');
+        alert('No hay casos de prueba para exportar');
         return;
     }
     
@@ -660,7 +678,7 @@ function exportToCSV() {
 // Export to JSON
 function exportToJSON() {
     if (!currentTestPlan) {
-        alert('No test plan to export');
+        alert('No hay plan de pruebas para exportar');
         return;
     }
     
@@ -671,7 +689,7 @@ function exportToJSON() {
 // Export to Gherkin (BDD)
 function exportToGherkin() {
     if (!testCases.length) {
-        alert('No test cases to export');
+        alert('No hay casos de prueba para exportar');
         return;
     }
     
@@ -712,7 +730,7 @@ function downloadFile(content, filename, mimeType) {
 
 // Discard test plan
 function discardTestPlan() {
-    if (!confirm('Are you sure you want to discard this test plan? This action cannot be undone.')) {
+    if (!confirm('¿Estás seguro de que quieres descartar este plan de pruebas? Esta acción no se puede deshacer.')) {
         return;
     }
     
@@ -777,7 +795,7 @@ function editTestCase(testCaseId) {
     const modalTitle = document.getElementById('edit-modal-title');
     const modalBody = document.getElementById('edit-modal-body');
     
-    modalTitle.textContent = `Edit ${testCase.id}`;
+    modalTitle.textContent = `Editar ${testCase.id}`;
     
     // Build steps HTML for editing
     let stepsHTML = '';
@@ -800,55 +818,55 @@ function editTestCase(testCaseId) {
     
     modalBody.innerHTML = `
         <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="edit-name">Test Case Name</label>
+            <label for="edit-name">Nombre del Caso de Prueba</label>
             <input type="text" id="edit-name" class="form-control" value="${testCase.name}">
         </div>
         
         <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="edit-description">Description</label>
+            <label for="edit-description">Descripción</label>
             <textarea id="edit-description" class="form-control" rows="2">${testCase.description}</textarea>
         </div>
         
         <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="edit-priority">Priority</label>
+            <label for="edit-priority">Prioridad</label>
             <select id="edit-priority" class="form-control">
-                <option value="High" ${testCase.priority === 'High' ? 'selected' : ''}>High</option>
-                <option value="Medium" ${testCase.priority === 'Medium' ? 'selected' : ''}>Medium</option>
-                <option value="Low" ${testCase.priority === 'Low' ? 'selected' : ''}>Low</option>
+                <option value="High" ${testCase.priority === 'High' ? 'selected' : ''}>Alta</option>
+                <option value="Medium" ${testCase.priority === 'Medium' ? 'selected' : ''}>Media</option>
+                <option value="Low" ${testCase.priority === 'Low' ? 'selected' : ''}>Baja</option>
             </select>
         </div>
         
         <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="edit-preconditions">Preconditions</label>
+            <label for="edit-preconditions">Precondiciones</label>
             <textarea id="edit-preconditions" class="form-control" rows="2">${testCase.preconditions}</textarea>
         </div>
         
         <div class="form-group" style="margin-bottom: 1rem;">
-            <label>Test Steps</label>
+            <label>Pasos de Prueba</label>
             <div id="edit-steps-container" style="margin-top: 0.5rem;">
-                ${stepsHTML || '<p style="color: #a0aec0; font-style: italic; margin: 0;">No steps defined</p>'}
+                ${stepsHTML || '<p style="color: #a0aec0; font-style: italic; margin: 0;">No hay pasos definidos</p>'}
             </div>
             <button class="btn-secondary" onclick="addNewStep()" style="margin-top: 0.5rem; font-size: 0.875rem; padding: 0.5rem 1rem;">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-                Add Step
+                Agregar Paso
             </button>
         </div>
         
         <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="edit-test-data">Test Data</label>
+            <label for="edit-test-data">Datos de Prueba</label>
             <textarea id="edit-test-data" class="form-control" rows="2">${testCase.testData}</textarea>
         </div>
         
         <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="edit-expected-result">Expected Result</label>
+            <label for="edit-expected-result">Resultado Esperado</label>
             <textarea id="edit-expected-result" class="form-control" rows="2">${testCase.expectedResult}</textarea>
         </div>
         
         <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
-            <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
-            <button class="btn-save" onclick="saveTestCaseEdit('${testCaseId}')">Save Changes</button>
+            <button class="btn-cancel" onclick="closeEditModal()">Cancelar</button>
+            <button class="btn-save" onclick="saveTestCaseEdit('${testCaseId}')">Guardar Cambios</button>
         </div>
     `;
     
@@ -861,11 +879,11 @@ function addNewStep() {
     const currentSteps = container.querySelectorAll('.edit-step-input');
     const newIndex = currentSteps.length;
     
-    const newStepHTML = `
+            const newStepHTML = `
         <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
             <span style="min-width: 30px; color: #718096; font-weight: 500;">${newIndex + 1}.</span>
-            <input type="text" class="form-control edit-step-input" data-step-index="${newIndex}" value="" placeholder="Enter step description..." style="flex: 1;">
-            <button class="btn-icon btn-icon-delete" onclick="removeStep(${newIndex})" title="Remove step" style="flex-shrink: 0;">
+            <input type="text" class="form-control edit-step-input" data-step-index="${newIndex}" value="" placeholder="Introduce la descripción del paso..." style="flex: 1;">
+            <button class="btn-icon btn-icon-delete" onclick="removeStep(${newIndex})" title="Eliminar paso" style="flex-shrink: 0;">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -888,7 +906,7 @@ function removeStep(stepIndex) {
     const allSteps = container.querySelectorAll('.edit-step-input');
     
     if (allSteps.length <= 1) {
-        alert('A test case must have at least one step');
+        alert('Un caso de prueba debe tener al menos un paso');
         return;
     }
     
@@ -941,7 +959,7 @@ function saveTestCaseEdit(testCaseId) {
     if (updatedSteps.length > 0) {
         testCase.steps = updatedSteps;
     } else {
-        alert('Please add at least one test step');
+        alert('Por favor, agrega al menos un paso de prueba');
         return;
     }
     
@@ -952,7 +970,7 @@ function saveTestCaseEdit(testCaseId) {
     closeEditModal();
     
     // Show success message
-    alert('Test case updated successfully!');
+    alert('¡Caso de prueba actualizado exitosamente!');
 }
 
 // Close edit modal
@@ -966,7 +984,7 @@ function deleteTestCase(testCaseId) {
     const testCase = testCases.find(tc => tc.id === testCaseId);
     if (!testCase) return;
     
-    if (!confirm(`Are you sure you want to delete ${testCase.id}?\n\nThis action cannot be undone.`)) {
+    if (!confirm(`¿Estás seguro de que quieres eliminar ${testCase.id}?\n\nEsta acción no se puede deshacer.`)) {
         return;
     }
     
@@ -983,13 +1001,13 @@ function deleteTestCase(testCaseId) {
 // Delete all test cases
 function deleteAllTestCases() {
     if (testCases.length === 0) {
-        alert('No test cases to delete');
+        alert('No hay casos de prueba para eliminar');
         return;
     }
     
     const numCases = testCases.length;
     
-    if (!confirm(`Are you sure you want to delete ALL ${numCases} test cases?\n\nThis action cannot be undone.`)) {
+    if (!confirm(`¿Estás seguro de que quieres eliminar TODOS los ${numCases} casos de prueba?\n\nEsta acción no se puede deshacer.`)) {
         return;
     }
     
@@ -1028,7 +1046,7 @@ async function openJiraImportModal() {
     displayedJiraIssues = [];
     
     // Show loading
-    issuesList.innerHTML = '<div class="jira-loading"><div class="loading-spinner"></div><p style="margin-top: 1rem;">Loading Jira issues...</p></div>';
+    issuesList.innerHTML = '<div class="jira-loading"><div class="loading-spinner"></div><p style="margin-top: 1rem;">Cargando incidencias de Jira...</p></div>';
     
     modal.classList.add('show');
     
@@ -1298,8 +1316,8 @@ function displayJiraIssues() {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
-                <h4>No issues found</h4>
-                <p>Try adjusting your filters or search criteria</p>
+                <h4>No se encontraron incidencias</h4>
+                <p>Intenta ajustar tus filtros o criterios de búsqueda</p>
             </div>
         `;
         return;
@@ -1351,7 +1369,7 @@ function selectJiraIssue(issueKey) {
 // Import selected Jira issue
 function importSelectedJiraIssue() {
     if (!selectedJiraIssue) {
-        alert('Please select a Jira issue first');
+        alert('Por favor, selecciona primero una incidencia de Jira');
         return;
     }
     
@@ -1364,7 +1382,7 @@ function importSelectedJiraIssue() {
     closeJiraImportModal();
     
     // Show success message
-    alert(`Successfully imported Jira issue ${selectedJiraIssue.key}`);
+    alert(`Incidencia de Jira ${selectedJiraIssue.key} importada exitosamente`);
     
     // Reset selection
     selectedJiraIssue = null;
@@ -1409,7 +1427,7 @@ function openLoadPlanModal() {
     const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
     
     if (savedPlans.length === 0) {
-        plansList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #718096;">No saved test plans found.</div>';
+        plansList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #718096;">No se encontraron planes de prueba guardados.</div>';
     } else {
         // Display saved plans
         plansList.innerHTML = savedPlans.map((plan, index) => {
@@ -1468,7 +1486,7 @@ function selectSavedPlan(planIndex) {
 // Load selected plan
 function loadSelectedPlan() {
     if (selectedSavedPlan === null) {
-        alert('Please select a test plan first');
+        alert('Por favor, selecciona primero un plan de pruebas');
         return;
     }
     
@@ -1477,7 +1495,7 @@ function loadSelectedPlan() {
     const plan = savedPlans[selectedSavedPlan];
     
     if (!plan) {
-        alert('Error loading test plan');
+        alert('Error al cargar el plan de pruebas');
         return;
     }
     
@@ -1548,7 +1566,7 @@ function loadSelectedPlan() {
     updateGenerateButtonState();
     
     // Show success message
-    alert(`Successfully loaded test plan: ${plan.title}`);
+    alert(`Plan de pruebas cargado exitosamente: ${plan.title}`);
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1560,14 +1578,14 @@ function deleteSavedPlan(planIndex) {
     const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
     
     if (planIndex < 0 || planIndex >= savedPlans.length) {
-        alert('Error: Invalid plan index');
+        alert('Error: Índice de plan inválido');
         return;
     }
     
     const plan = savedPlans[planIndex];
     
     // Confirm deletion
-    if (!confirm(`Are you sure you want to delete "${plan.title}"?\n\nThis action cannot be undone.`)) {
+    if (!confirm(`¿Estás seguro de que quieres eliminar "${plan.title}"?\n\nEsta acción no se puede deshacer.`)) {
         return;
     }
     
@@ -1593,7 +1611,7 @@ function closeLoadPlanModal() {
 
 // Clear chat conversation
 function clearChatConversation() {
-    if (!confirm('Are you sure you want to clear the chat conversation?\n\nThis will reset the conversation to its initial state.')) {
+    if (!confirm('¿Estás seguro de que quieres limpiar la conversación del chat?\n\nEsto restablecerá la conversación a su estado inicial.')) {
         return;
     }
     
@@ -1603,15 +1621,15 @@ function clearChatConversation() {
         <div class="chat-message assistant">
             <div class="message-avatar">AI</div>
             <div class="message-content">
-                <p>Test plan generated successfully! You can now refine it by asking me to:</p>
+                <p>¡Plan de pruebas generado exitosamente! Ahora puedes refinarlo pidiéndome que:</p>
                 <ul>
-                    <li>Add specific test cases for edge cases</li>
-                    <li>Include negative testing scenarios</li>
-                    <li>Add performance or security test cases</li>
-                    <li>Modify existing test cases</li>
-                    <li>Remove redundant test cases</li>
+                    <li>Agregue casos de prueba específicos para casos límite</li>
+                    <li>Incluya escenarios de pruebas negativas</li>
+                    <li>Agregue casos de prueba de rendimiento o seguridad</li>
+                    <li>Modifique casos de prueba existentes</li>
+                    <li>Elimine casos de prueba redundantes</li>
                 </ul>
-                <p>What would you like to adjust?</p>
+                <p>¿Qué te gustaría ajustar?</p>
             </div>
         </div>
     `;

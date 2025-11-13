@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Plan Generator</title>
+    <title>Generador de Planes de Prueba</title>
     
     <!-- AWS Amazon Ember Font -->
     <link rel="preconnect" href="https://d1tzzh0q3mh5bp.cloudfront.net">
@@ -14,13 +14,13 @@
 <body>
     <!-- Header Section -->
     <div class="header">
-        <h1>Test Plan Generator</h1>
-        <p>AI-Powered Test Case Generation from Functional Requirements</p>
+        <h1>Generador de Planes de Prueba</h1>
+        <p>Generación de Casos de Prueba con IA desde Requisitos Funcionales</p>
         <button onclick="logout()" class="logout-btn">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
             </svg>
-            Logout
+            Cerrar sesión
         </button>
     </div>
 
@@ -33,26 +33,26 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    Configure Test Plan
+                    Configurar Plan de Pruebas
                 </h2>
                 <div style="display: flex; gap: 0.75rem;">
                     <button class="btn-new-plan" id="new-plan-btn" onclick="expandConfigSection()" style="display: none;">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        New Test Plan
+                        Nuevo Plan
                     </button>
                     <button class="btn-secondary" id="load-plan-header-btn" onclick="openLoadPlanModal()">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
                         </svg>
-                        Load Plan
+                        Cargar Plan
                     </button>
                     <button class="btn-secondary" id="import-jira-header-btn" onclick="openJiraImportModal()">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                         </svg>
-                        Import from Jira
+                        Importar desde Jira
                     </button>
                 </div>
             </div>
@@ -60,34 +60,34 @@
             <div class="form-section">
                 <div style="display: flex; gap: 1rem; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 2rem; flex: 1; min-width: 0;">
-                        <label for="plan-title" style="min-width: 200px; flex-shrink: 0;">Test Plan Title</label>
-                        <input type="text" id="plan-title" class="form-control" placeholder="e.g., User Authentication Test Plan" style="flex: 1;">
+                        <label for="plan-title" style="min-width: 200px; flex-shrink: 0;">Título del Plan de Pruebas</label>
+                        <input type="text" id="plan-title" class="form-control" placeholder="ej., Plan de Pruebas de Autenticación" style="flex: 1;">
                     </div>
                     <div style="display: flex; align-items: center; gap: 1rem; width: 280px; min-width: 280px;">
                         <label for="plan-id" style="min-width: 30px; flex-shrink: 0;">ID</label>
-                        <input type="text" id="plan-id" class="form-control" placeholder="Auto-generated" readonly style="background-color: rgba(0, 0, 0, 0.05); font-size: 0.85rem; flex: 1;">
+                        <input type="text" id="plan-id" class="form-control" placeholder="Auto-generado" readonly style="background-color: rgba(0, 0, 0, 0.05); font-size: 0.85rem; flex: 1;">
                     </div>
                     <div style="display: flex; align-items: center; gap: 1rem; width: 250px; min-width: 250px;">
-                        <label for="plan-reference" style="min-width: 80px; flex-shrink: 0;">Reference</label>
-                        <input type="text" id="plan-reference" class="form-control" placeholder="e.g., JIRA-123" readonly style="background-color: rgba(0, 0, 0, 0.05); font-size: 0.85rem; flex: 1;">
+                        <label for="plan-reference" style="min-width: 80px; flex-shrink: 0;">Referencia</label>
+                        <input type="text" id="plan-reference" class="form-control" placeholder="ej., JIRA-123" readonly style="background-color: rgba(0, 0, 0, 0.05); font-size: 0.85rem; flex: 1;">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="requirements">Functional Requirements</label>
-                    <textarea id="requirements" class="form-control" rows="6" placeholder="Enter the functional requirements that should be covered by the test plan...
+                    <label for="requirements">Requisitos Funcionales</label>
+                    <textarea id="requirements" class="form-control" rows="6" placeholder="Introduce los requisitos funcionales que deben ser cubiertos por el plan de pruebas...
 
-Example:
-- Users must be able to log in with email and password
-- System should validate email format
-- Password must be at least 8 characters
-- Failed login attempts should be tracked"></textarea>
+Ejemplo:
+- Los usuarios deben poder iniciar sesión con email y contraseña
+- El sistema debe validar el formato del email
+- La contraseña debe tener al menos 8 caracteres
+- Los intentos fallidos de inicio de sesión deben ser registrados"></textarea>
                 </div>
 
                 <!-- Row 1: Both sliders side by side -->
                 <div class="form-row">
                     <div class="form-group" style="flex: 1;">
-                        <label for="coverage">Coverage Percentage (%)</label>
+                        <label for="coverage">Porcentaje de Cobertura (%)</label>
                         <div class="slider-container">
                             <input type="range" id="coverage" class="slider" min="10" max="100" value="80" step="10">
                             <div class="slider-labels">
@@ -101,7 +101,7 @@ Example:
                     </div>
 
                     <div class="form-group" style="flex: 1;">
-                        <label for="test-cases-range">Number of Test Cases (Min - Max)</label>
+                        <label for="test-cases-range">Número de Casos de Prueba (Mín - Máx)</label>
                         <div class="dual-slider-container">
                             <span class="dual-slider-value-min" id="min-cases-value">5</span>
                             <span class="dual-slider-value-max" id="max-cases-value">15</span>
@@ -122,7 +122,7 @@ Example:
 
                 <!-- Row 2: Test type cards in horizontal row -->
                 <div class="form-group">
-                    <label for="test-types">Test Plan Type</label>
+                    <label for="test-types">Tipo de Plan de Pruebas</label>
                     <div id="test-types-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-top: 0.5rem;">
                         <div class="test-type-card active" data-type="unit" onclick="selectTestType('unit')">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 28px; height: 28px;">
@@ -162,7 +162,7 @@ Example:
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
                     </svg>
-                    Generate Test Plan
+                    Generar Plan de Pruebas
                 </button>
             </div>
         </div>
@@ -174,13 +174,13 @@ Example:
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
                     </svg>
-                    Generated Test Cases
+                    Casos de Prueba Generados
                 </h2>
                 <button class="btn-secondary" onclick="deleteAllTestCases()" style="margin-left: auto;">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                     </svg>
-                    Delete All
+                    Eliminar Todos
                 </button>
             </div>
 
@@ -189,12 +189,12 @@ Example:
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th>Priority</th>
-                            <th>Preconditions</th>
-                            <th>Expected Result</th>
-                            <th>Actions</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Prioridad</th>
+                            <th>Precondiciones</th>
+                            <th>Resultado Esperado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="test-cases-tbody">
@@ -211,13 +211,13 @@ Example:
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
                     </svg>
-                    Refine Test Plan
+                    Refinar Plan de Pruebas
                 </h2>
                 <button class="btn-secondary" onclick="clearChatConversation()" style="margin-left: auto;">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                     </svg>
-                    Clear Chat
+                    Limpiar Chat
                 </button>
             </div>
             
@@ -226,26 +226,26 @@ Example:
                     <div class="chat-message assistant">
                         <div class="message-avatar">AI</div>
                         <div class="message-content">
-                            <p>Test plan generated successfully! You can now refine it by asking me to:</p>
+                            <p>¡Plan de pruebas generado exitosamente! Ahora puedes refinarlo pidiéndome que:</p>
                             <ul>
-                                <li>Add specific test cases for edge cases</li>
-                                <li>Include negative testing scenarios</li>
-                                <li>Add performance or security test cases</li>
-                                <li>Modify existing test cases</li>
-                                <li>Remove redundant test cases</li>
+                                <li>Agregue casos de prueba específicos para casos límite</li>
+                                <li>Incluya escenarios de pruebas negativas</li>
+                                <li>Agregue casos de prueba de rendimiento o seguridad</li>
+                                <li>Modifique casos de prueba existentes</li>
+                                <li>Elimine casos de prueba redundantes</li>
                             </ul>
-                            <p>What would you like to adjust?</p>
+                            <p>¿Qué te gustaría ajustar?</p>
                         </div>
                     </div>
                 </div>
                 
                 <div class="chat-input-container">
-                    <textarea id="chat-input" class="chat-input" placeholder="Ask me to refine the test plan..." rows="2"></textarea>
+                    <textarea id="chat-input" class="chat-input" placeholder="Pídeme que refine el plan de pruebas..." rows="2"></textarea>
                     <button class="btn-send" onclick="sendChatMessage()">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                         </svg>
-                        Send
+                        Enviar
                     </button>
                 </div>
             </div>
@@ -257,7 +257,7 @@ Example:
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
                 </svg>
-                Save & Export Options
+                Guardar y Exportar
             </h2>
             
             <div class="actions-grid">
@@ -265,32 +265,32 @@ Example:
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                     </svg>
-                    <span>Save Plan</span>
-                    <small>Save for later editing</small>
+                    <span>Guardar Plan</span>
+                    <small>Guardar para editar después</small>
                 </button>
 
                 <button class="action-btn export-btn" onclick="exportToCSV()">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
-                    <span>Export CSV</span>
-                    <small>Download as CSV file</small>
+                    <span>Exportar CSV</span>
+                    <small>Descargar como archivo CSV</small>
                 </button>
 
                 <button class="action-btn export-btn" onclick="exportToJSON()">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
                     </svg>
-                    <span>Export JSON</span>
-                    <small>Download as JSON file</small>
+                    <span>Exportar JSON</span>
+                    <small>Descargar como archivo JSON</small>
                 </button>
 
                 <button class="action-btn export-btn" onclick="exportToGherkin()">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
-                    <span>Export BDD (Gherkin)</span>
-                    <small>Download as .feature file</small>
+                    <span>Exportar BDD (Gherkin)</span>
+                    <small>Descargar como archivo .feature</small>
                 </button>
             </div>
         </div>
@@ -300,7 +300,7 @@ Example:
     <div class="modal" id="test-case-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">Test Case Details</h3>
+                <h3 id="modal-title">Detalles del Caso de Prueba</h3>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body" id="modal-body">
@@ -313,7 +313,7 @@ Example:
     <div class="modal" id="edit-test-case-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="edit-modal-title">Edit Test Case</h3>
+                <h3 id="edit-modal-title">Editar Caso de Prueba</h3>
                 <button class="modal-close" onclick="closeEditModal()">&times;</button>
             </div>
             <div class="modal-body" id="edit-modal-body">
@@ -326,54 +326,54 @@ Example:
     <div class="modal" id="jira-import-modal">
         <div class="modal-content jira-modal-content">
             <div class="modal-header">
-                <h3>Import from Jira</h3>
+                <h3>Importar desde Jira</h3>
                 <button class="modal-close" onclick="closeJiraImportModal()">&times;</button>
             </div>
             <div class="modal-body jira-modal-body">
-                <p style="color: #718096; margin-bottom: 1.5rem;">Select a Jira issue to import its title and description into the test plan configuration.</p>
+                <p style="color: #718096; margin-bottom: 1.5rem;">Selecciona una incidencia de Jira para importar su título y descripción en la configuración del plan de pruebas.</p>
                 
                 <!-- Search and Filter Controls -->
                 <div class="jira-filters-container">
                     <div class="jira-filters-row">
                         <div style="flex: 2;">
-                            <input type="text" id="jira-search" class="form-control" placeholder="🔍 Search by ID, title, or description..." oninput="filterJiraIssues()">
+                            <input type="text" id="jira-search" class="form-control" placeholder="🔍 Buscar por ID, título o descripción..." oninput="filterJiraIssues()">
                         </div>
                         <div style="flex: 1; min-width: 150px;">
                             <select id="jira-type-filter" class="form-control" onchange="filterJiraIssues()">
-                                <option value="">All Types</option>
-                                <option value="story">Story</option>
-                                <option value="bug">Bug</option>
-                                <option value="task">Task</option>
-                                <option value="epic">Epic</option>
+                                <option value="">Todos los Tipos</option>
+                                <option value="story">Historia</option>
+                                <option value="bug">Error</option>
+                                <option value="task">Tarea</option>
+                                <option value="epic">Épica</option>
                             </select>
                         </div>
                     </div>
                     <div class="jira-filters-row">
                         <div style="flex: 1;">
                             <select id="jira-status-filter" class="form-control" onchange="filterJiraIssues()">
-                                <option value="">All Status</option>
-                                <option value="To Do">To Do</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Done">Done</option>
-                                <option value="Blocked">Blocked</option>
+                                <option value="">Todos los Estados</option>
+                                <option value="To Do">Por Hacer</option>
+                                <option value="In Progress">En Progreso</option>
+                                <option value="Done">Completado</option>
+                                <option value="Blocked">Bloqueado</option>
                             </select>
                         </div>
                         <div style="flex: 1;">
                             <select id="jira-priority-filter" class="form-control" onchange="filterJiraIssues()">
-                                <option value="">All Priorities</option>
-                                <option value="High">High</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Low">Low</option>
+                                <option value="">Todas las Prioridades</option>
+                                <option value="High">Alta</option>
+                                <option value="Medium">Media</option>
+                                <option value="Low">Baja</option>
                             </select>
                         </div>
                         <div style="flex: 1;">
                             <select id="jira-assignee-filter" class="form-control" onchange="filterJiraIssues()">
-                                <option value="">All Assignees</option>
+                                <option value="">Todos los Asignados</option>
                                 <!-- Will be populated dynamically -->
                             </select>
                         </div>
                         <div style="flex: 0 0 auto;">
-                            <button class="btn-clear-filters" onclick="clearJiraFilters()" title="Clear all filters">
+                            <button class="btn-clear-filters" onclick="clearJiraFilters()" title="Limpiar todos los filtros">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
                                 </svg>
@@ -383,7 +383,7 @@ Example:
                 </div>
                 
                 <div class="jira-results-info" id="jira-results-info">
-                    Showing <span id="jira-showing-count">0</span> of <span id="jira-total-count">0</span> issues
+                    Mostrando <span id="jira-showing-count">0</span> de <span id="jira-total-count">0</span> incidencias
                 </div>
                 
                 <div class="jira-issues-list" id="jira-issues-list">
@@ -395,13 +395,13 @@ Example:
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
                         </svg>
-                        Load More
+                        Cargar Más
                     </button>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeJiraImportModal()">Cancel</button>
-                <button class="btn-save" onclick="importSelectedJiraIssue()" id="import-jira-btn" disabled>Import Selected</button>
+                <button class="btn-cancel" onclick="closeJiraImportModal()">Cancelar</button>
+                <button class="btn-save" onclick="importSelectedJiraIssue()" id="import-jira-btn" disabled>Importar Seleccionado</button>
             </div>
         </div>
     </div>
@@ -410,19 +410,19 @@ Example:
     <div class="modal" id="load-plan-modal">
         <div class="modal-content jira-modal-content">
             <div class="modal-header">
-                <h3>Load Saved Test Plan</h3>
+                <h3>Cargar Plan de Pruebas Guardado</h3>
                 <button class="modal-close" onclick="closeLoadPlanModal()">&times;</button>
             </div>
             <div class="modal-body jira-modal-body">
-                <p style="color: #718096; margin-bottom: 1.5rem;">Select a saved test plan to load and continue working on it.</p>
+                <p style="color: #718096; margin-bottom: 1.5rem;">Selecciona un plan de pruebas guardado para cargarlo y continuar trabajando en él.</p>
                 
                 <div class="jira-issues-list" id="saved-plans-list">
                     <!-- Saved plans will be populated here -->
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeLoadPlanModal()">Cancel</button>
-                <button class="btn-save" onclick="loadSelectedPlan()" id="load-plan-btn" disabled>Load Selected</button>
+                <button class="btn-cancel" onclick="closeLoadPlanModal()">Cancelar</button>
+                <button class="btn-save" onclick="loadSelectedPlan()" id="load-plan-btn" disabled>Cargar Seleccionado</button>
             </div>
         </div>
     </div>
