@@ -18,26 +18,20 @@ class OpenSearchClient:
     REGION = 'eu-west-1'
     
     # Team to index mapping
-    # Discovered from OpenSearch cluster
+    # Only 4 teams with their specific indices
     TEAM_INDEX_MAPPING = {
         'darwin': ['rag-documents-darwin'],
-        'deltasmile': ['rag-documents-deltasmile'],
         'mulesoft': ['rag-documents-mulesoft'],
-        'sap': ['rag-documents-sap', 'rag-documents-sapv2', 'rag-documents-saplcorp'],
+        'sap': ['rag-documents-sap'],
         'saplcorp': ['rag-documents-saplcorp']
     }
     
     # All indices for users without team (general search across all team indices)
     ALL_TEAM_INDICES = [
         'rag-documents-darwin',
-        'rag-documents-deltasmile', 
         'rag-documents-mulesoft',
         'rag-documents-sap',
-        'rag-documents-sapv2',
-        'rag-documents-saplcorp',
-        'rag-documents',  # General index
-        'rag-documents-gadea',
-        'rag-documents-pds'
+        'rag-documents-saplcorp'
     ]
     
     def __init__(self):
