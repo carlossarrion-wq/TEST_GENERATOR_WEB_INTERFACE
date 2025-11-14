@@ -1,7 +1,0 @@
-{
-  "httpMethod": "POST",
-  "pathParameters": {
-    "action": "generate-plan"
-  },
-  "body": "{\"title\":\"Test de Login\",\"requirements\":\"Sistema de autenticación con usuario y contraseña. Debe validar credenciales y mostrar errores apropiados.\",\"coverage_percentage\":80,\"min_test_cases\":3,\"max_test_cases\":5,\"selected_test_types\":[\"functional\",\"negative\"]}"
-}

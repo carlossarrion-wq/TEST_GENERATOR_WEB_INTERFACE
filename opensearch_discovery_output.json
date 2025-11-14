@@ -1,8 +1,0 @@
-{
-  "statusCode": 200,
-  "headers": {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*"
-  },
-  "body": "{\n  \"success\": true,\n  \"opensearch_endpoint\": \"vpc-rag-opensearch-clean-qodnaopeuroal2f6intbz7i5xy.eu-west-1.es.amazonaws.com\",\n  \"region\": \"eu-west-1\",\n  \"total_indices\": 10,\n  \"all_indices\": [\n    \"rag-documents-sap\",\n    \"rag-documents\",\n    \"rag-documents-deltasmile\",\n    \"rag-documents-darwin\",\n    \"rag-documents-gadea\",\n    \"rag-documents-sapv2\",\n    \"rag-documents-mulesoft\",\n    \"rag-documents-saplcorp\",\n    \"rag-documents-pds\",\n    \"mini-poc-incidents\"\n  ],\n  \"team_mapping\": {\n    \"darwin\": [\n      \"rag-documents-darwin\"\n    ],\n    \"deltasmile\": [\n      \"rag-documents-deltasmile\"\n    ],\n    \"mulesoft\": [\n      \"rag-documents-mulesoft\"\n    ],\n    \"sap\": [\n      \"rag-documents-sap\",\n      \"rag-documents-sapv2\",\n      \"rag-documents-saplcorp\"\n    ],\n    \"saplcorp\": [\n      \"rag-documents-saplcorp\"\n    ]\n  },\n  \"unassigned_indices\": [\n    \"rag-documents\",\n    \"rag-documents-gadea\",\n    \"rag-documents-pds\",\n    \"mini-poc-incidents\"\n  ],\n  \"summary\": {\n    \"darwin\": 1,\n    \"deltasmile\": 1,\n    \"mulesoft\": 1,\n    \"sap\": 3,\n    \"saplcorp\": 1\n  }\n}"
-}

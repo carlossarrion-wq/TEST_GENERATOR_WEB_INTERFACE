@@ -295,6 +295,15 @@ class APIService {
     }
 
     /**
+     * Interactive chat with test cases context
+     * @param {Object} context - Full context including test plan, cases, and history
+     * @returns {Promise<Object>} Structured AI response with action and data
+     */
+    async chatWithTestCases(context) {
+        return await this.request('/api/chat-agent', 'POST', context);
+    }
+
+    /**
      * Improve test cases using AI
      * @param {string} planId - Test plan ID
      * @param {Object} improvementRequest - Improvement requirements

@@ -1,4 +1,0 @@
-{
-  "httpMethod": "POST",
-  "body": "{\"action\": \"generate-plan\", \"title\": \"Verification Test for LangChain\", \"requirements\": \"Test to verify LangChain and Haiku 4.5 are working correctly with all specialized tools\", \"coverage_percentage\": 80, \"min_test_cases\": 3, \"max_test_cases\": 5, \"selected_test_types\": [\"functional\"]}"
-}

@@ -558,6 +558,12 @@ async function sendChatMessage() {
     
     if (!message) return;
     
+    // Validate that we have test cases
+    if (!testCases || testCases.length === 0) {
+        alert('No hay casos de prueba para modificar. Genera un plan primero.');
+        return;
+    }
+    
     // Add user message to chat
     addChatMessage(message, 'user');
     
@@ -578,34 +584,60 @@ async function sendChatMessage() {
     chatMessages.appendChild(loadingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
-    // Simulate AI response (in real app, this would call Lambda function)
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Remove loading message
-    loadingDiv.remove();
-    
-    // Generate response based on message
-    let response = generateChatResponse(message);
-    
-    // Add AI response
-    addChatMessage(response, 'assistant');
+    try {
+        // Build context for chat agent
+        const context = {
+            user_message: message,
+            test_plan: currentTestPlan || {
+                id: document.getElementById('plan-id').value,
+                title: document.getElementById('plan-title').value,
+                requirements: document.getElementById('requirements').value
+            },
+            test_cases: testCases,
+            conversation_history: getChatHistory()
+        };
+        
+        // Call chat agent API
+        const response = await window.apiService.chatWithTestCases(context);
+        
+        // Remove loading message
+        loadingDiv.remove();
+        
+        // Process response
+        if (response.requires_confirmation) {
+            // Show confirmation dialog
+            showConfirmationDialog(response);
+        } else {
+            // Apply changes directly
+            applyChanges(response);
+            addChatMessage(response.message, 'assistant');
+        }
+        
+    } catch (error) {
+        console.error('Error in chat:', error);
+        loadingDiv.remove();
+        addChatMessage('Lo siento, hubo un error al procesar tu solicitud. Por favor, intenta de nuevo.', 'assistant');
+    }
 }
 
-// Generate chat response (simulates AI)
-function generateChatResponse(userMessage) {
-    const lowerMessage = userMessage.toLowerCase();
+// Get chat history from DOM
+function getChatHistory() {
+    const chatMessages = document.getElementById('chat-messages');
+    const messages = chatMessages.querySelectorAll('.chat-message');
+    const history = [];
     
-    if (lowerMessage.includes('add') || lowerMessage.includes('include')) {
-        return 'I can help you add more test cases. Based on your request, I would suggest adding test cases for edge cases and boundary conditions. Would you like me to generate specific test cases for error handling and validation scenarios?';
-    } else if (lowerMessage.includes('remove') || lowerMessage.includes('delete')) {
-        return 'I can help you remove redundant test cases. Please specify which test cases you\'d like to remove, or I can analyze the current plan and suggest which ones might be redundant.';
-    } else if (lowerMessage.includes('modify') || lowerMessage.includes('change')) {
-        return 'I can help you modify existing test cases. Please specify which test case you\'d like to modify and what changes you\'d like to make.';
-    } else if (lowerMessage.includes('security') || lowerMessage.includes('performance')) {
-        return 'Great idea! I can add specialized test cases for security and performance testing. These would include tests for authentication, authorization, data validation, load testing, and response time verification. Would you like me to generate these?';
-    } else {
-        return 'I understand you want to refine the test plan. I can help you with:\n\n• Adding new test cases for specific scenarios\n• Removing redundant or unnecessary test cases\n• Modifying existing test cases\n• Adding security or performance test cases\n• Reorganizing test cases by priority\n\nPlease let me know what specific changes you\'d like to make.';
-    }
+    messages.forEach(msg => {
+        const isAssistant = msg.classList.contains('assistant');
+        const content = msg.querySelector('.message-content p');
+        if (content) {
+            history.push({
+                type: isAssistant ? 'assistant' : 'user',
+                content: content.textContent
+            });
+        }
+    });
+    
+    return history;
 }
 
 // Add message to chat
@@ -1636,6 +1668,322 @@ function clearChatConversation() {
     
     // Clear the input field
     document.getElementById('chat-input').value = '';
+}
+
+// Show confirmation dialog
+function showConfirmationDialog(response) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'confirmation-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    `;
+    
+    // Build affected cases list
+    let affectedCasesList = '';
+    if (response.affected_cases && response.affected_cases.length > 0) {
+        affectedCasesList = '<div style="margin: 1rem 0; padding: 1rem; background: #f7fafc; border-radius: 8px;">';
+        affectedCasesList += '<strong style="color: #2d3748;">Casos afectados:</strong><ul style="margin: 0.5rem 0; padding-left: 1.5rem;">';
+        response.affected_cases.forEach(caseId => {
+            const testCase = testCases.find(tc => tc.id === caseId);
+            const caseName = testCase ? testCase.name : caseId;
+            affectedCasesList += `<li style="color: #4a5568; margin: 0.25rem 0;">${caseId}: ${caseName}</li>`;
+        });
+        affectedCasesList += '</ul></div>';
+    }
+    
+    modal.innerHTML = `
+        <h3 style="margin: 0 0 1rem 0; color: #2d3748; font-size: 1.25rem;">Confirmar Acción</h3>
+        <p style="color: #4a5568; margin-bottom: 1rem;">${response.message}</p>
+        ${affectedCasesList}
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+            <button id="confirm-cancel-btn" style="
+                padding: 0.75rem 1.5rem;
+                border: 1px solid #e2e8f0;
+                background: white;
+                color: #4a5568;
+                border-radius: 8px;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: all 0.2s;
+            ">Cancelar</button>
+            <button id="confirm-accept-btn" style="
+                padding: 0.75rem 1.5rem;
+                border: none;
+                background: #319795;
+                color: white;
+                border-radius: 8px;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: all 0.2s;
+            ">Aceptar</button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Button references
+    const acceptBtn = document.getElementById('confirm-accept-btn');
+    const cancelBtn = document.getElementById('confirm-cancel-btn');
+    
+    // Accept handler
+    acceptBtn.onclick = function() {
+        // Visual feedback
+        acceptBtn.style.background = '#2c7a7b';
+        acceptBtn.style.cursor = 'not-allowed';
+        cancelBtn.disabled = true;
+        cancelBtn.style.opacity = '0.5';
+        cancelBtn.style.cursor = 'not-allowed';
+        
+        // Apply changes
+        applyChanges(response);
+        
+        // Add confirmation message based on action type
+        let confirmationMessage = '';
+        switch(response.action) {
+            case 'DELETE':
+                confirmationMessage = `✓ Casos de prueba eliminados exitosamente: ${response.affected_cases.join(', ')}`;
+                break;
+            case 'MODIFY':
+                confirmationMessage = `✓ Casos de prueba modificados exitosamente: ${response.affected_cases.join(', ')}`;
+                break;
+            case 'UPDATE_STEP':
+                confirmationMessage = `✓ Paso actualizado exitosamente en ${response.affected_cases.join(', ')}`;
+                break;
+            case 'ADD':
+                confirmationMessage = `✓ Nuevos casos de prueba agregados exitosamente`;
+                break;
+            case 'GENERATE':
+                confirmationMessage = `✓ Casos de prueba generados exitosamente: ${response.affected_cases.join(', ')}`;
+                break;
+            case 'MULTIPLE':
+                confirmationMessage = `✓ Múltiples acciones ejecutadas exitosamente`;
+                break;
+            default:
+                confirmationMessage = `✓ Acción ejecutada exitosamente`;
+        }
+        
+        addChatMessage(confirmationMessage, 'assistant');
+        
+        // Close dialog
+        setTimeout(() => {
+            document.body.removeChild(overlay);
+        }, 300);
+    };
+    
+    // Cancel handler
+    cancelBtn.onclick = function() {
+        // Visual feedback
+        cancelBtn.style.background = '#e2e8f0';
+        cancelBtn.style.cursor = 'not-allowed';
+        acceptBtn.disabled = true;
+        acceptBtn.style.opacity = '0.5';
+        acceptBtn.style.cursor = 'not-allowed';
+        
+        // Add cancellation message
+        addChatMessage('Operación cancelada.', 'assistant');
+        
+        // Close dialog
+        setTimeout(() => {
+            document.body.removeChild(overlay);
+        }, 300);
+    };
+}
+
+// Apply changes from chat response
+function applyChanges(response) {
+    const action = response.action;
+    const data = response.data;
+    
+    switch(action) {
+        case 'DELETE':
+            // Delete specified test cases
+            if (data.case_ids && Array.isArray(data.case_ids)) {
+                data.case_ids.forEach(caseId => {
+                    const index = testCases.findIndex(tc => tc.id === caseId);
+                    if (index > -1) {
+                        testCases.splice(index, 1);
+                    }
+                });
+            }
+            break;
+            
+        case 'MODIFY':
+            // Modify test case fields
+            if (data.modifications && Array.isArray(data.modifications)) {
+                data.modifications.forEach(mod => {
+                    const testCase = testCases.find(tc => tc.id === mod.case_id);
+                    if (testCase && mod.changes) {
+                        Object.assign(testCase, mod.changes);
+                    }
+                });
+            }
+            break;
+            
+        case 'UPDATE_STEP':
+            // Update specific step in a test case
+            const testCase = testCases.find(tc => tc.id === data.case_id);
+            if (!testCase) break;
+            
+            // Handle simple update (single step modification)
+            if (data.step_number && data.new_description) {
+                if (testCase.steps && testCase.steps[data.step_number - 1]) {
+                    testCase.steps[data.step_number - 1].description = data.new_description;
+                }
+            }
+            // Handle complex operations (INSERT, APPEND, DELETE, etc.)
+            else if (data.operations && Array.isArray(data.operations)) {
+                if (!testCase.steps) testCase.steps = [];
+                
+                data.operations.forEach(op => {
+                    // Normalize operation name to lowercase for comparison
+                    const operation = op.operation.toLowerCase();
+                    
+                    switch(operation) {
+                        case 'insert':
+                            // Insert step at specific position
+                            const insertPos = op.position - 1; // Convert to 0-based index
+                            const insertDescription = op.step ? op.step.description : op.description;
+                            testCase.steps.splice(insertPos, 0, {
+                                number: op.position,
+                                description: insertDescription
+                            });
+                            // Renumber all steps after insertion
+                            testCase.steps.forEach((step, idx) => {
+                                step.number = idx + 1;
+                            });
+                            break;
+                            
+                        case 'append':
+                            // Add step at the end
+                            const appendDescription = op.step ? op.step.description : op.description;
+                            testCase.steps.push({
+                                number: testCase.steps.length + 1,
+                                description: appendDescription
+                            });
+                            break;
+                            
+                        case 'delete':
+                            // Delete step at specific position
+                            const deletePos = op.position - 1;
+                            if (deletePos >= 0 && deletePos < testCase.steps.length) {
+                                testCase.steps.splice(deletePos, 1);
+                                // Renumber remaining steps
+                                testCase.steps.forEach((step, idx) => {
+                                    step.number = idx + 1;
+                                });
+                            }
+                            break;
+                            
+                        case 'update':
+                            // Update step at specific position
+                            const updatePos = op.position - 1;
+                            const updateDescription = op.step ? op.step.description : op.description;
+                            if (testCase.steps[updatePos]) {
+                                testCase.steps[updatePos].description = updateDescription;
+                            }
+                            break;
+                    }
+                });
+            }
+            break;
+            
+        case 'ADD':
+            // Add new test cases manually
+            if (data.new_cases && Array.isArray(data.new_cases)) {
+                // Generate IDs for new cases
+                const maxId = testCases.reduce((max, tc) => {
+                    const num = parseInt(tc.id.replace('TC-', ''));
+                    return num > max ? num : max;
+                }, 0);
+                
+                data.new_cases.forEach((newCase, index) => {
+                    const caseId = `TC-${String(maxId + index + 1).padStart(3, '0')}`;
+                    testCases.push({
+                        id: caseId,
+                        name: newCase.name || 'New Test Case',
+                        description: newCase.description || '',
+                        priority: newCase.priority || 'Medium',
+                        preconditions: newCase.preconditions || '',
+                        expectedResult: newCase.expectedResult || newCase.expected_result || '',
+                        testData: newCase.testData || newCase.test_data || '',
+                        steps: newCase.steps || []
+                    });
+                });
+            }
+            break;
+            
+        case 'GENERATE':
+            // Generate new test cases from AI
+            if (data.new_cases && Array.isArray(data.new_cases)) {
+                // Generate IDs for new cases
+                const maxId = testCases.reduce((max, tc) => {
+                    const num = parseInt(tc.id.replace('TC-', ''));
+                    return num > max ? num : max;
+                }, 0);
+                
+                data.new_cases.forEach((newCase, index) => {
+                    const caseId = `TC-${String(maxId + index + 1).padStart(3, '0')}`;
+                    testCases.push({
+                        id: caseId,
+                        name: newCase.name || 'Generated Test Case',
+                        description: newCase.description || '',
+                        priority: newCase.priority || 'Medium',
+                        preconditions: newCase.preconditions || '',
+                        expectedResult: newCase.expectedResult || newCase.expected_result || '',
+                        testData: newCase.testData || newCase.test_data || '',
+                        steps: newCase.steps || []
+                    });
+                });
+            }
+            break;
+            
+        case 'MULTIPLE':
+            // Handle multiple actions
+            if (data.actions && Array.isArray(data.actions)) {
+                data.actions.forEach(subAction => {
+                    applyChanges({ action: subAction.type, data: subAction });
+                });
+            }
+            break;
+            
+        case 'QUERY':
+            // No changes to apply, just informational
+            break;
+            
+        default:
+            console.warn('Unknown action type:', action);
+    }
+    
+    // Update the display
+    displayTestCases();
+    
+    // Update current test plan
+    if (currentTestPlan) {
+        currentTestPlan.testCases = testCases;
+        currentTestPlan.lastModified = new Date().toISOString();
+    }
 }
 
 // Logout
