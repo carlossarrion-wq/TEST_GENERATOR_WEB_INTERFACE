@@ -1597,11 +1597,145 @@ function loadSelectedPlan() {
     // Update button state (disable if test cases exist, enable if empty)
     updateGenerateButtonState();
     
-    // Show success message
-    alert(`Plan de pruebas cargado exitosamente: ${plan.title}`);
+    // Show success notification
+    showSuccessNotification(`Plan de pruebas cargado exitosamente`, plan.title);
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Show success notification (elegant modal)
+function showSuccessNotification(title, subtitle) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'success-notification-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease-out;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        animation: slideIn 0.3s ease-out;
+        text-align: center;
+    `;
+    
+    modal.innerHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <div style="
+                width: 64px;
+                height: 64px;
+                background: #d4f4dd;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1rem auto;
+            ">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#38a169" style="width: 32px; height: 32px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 style="margin: 0 0 0.5rem 0; color: #2d3748; font-size: 1.5rem; font-weight: 600;">${title}</h3>
+            ${subtitle ? `<p style="color: #4a5568; margin: 0; font-size: 1rem;">${subtitle}</p>` : ''}
+        </div>
+        <button id="success-ok-btn" style="
+            padding: 0.75rem 2rem;
+            border: none;
+            background: #319795;
+            color: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        ">Aceptar</button>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #success-ok-btn:hover {
+            background: #2c7a7b !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // OK button handler
+    const okBtn = document.getElementById('success-ok-btn');
+    okBtn.onclick = function() {
+        overlay.style.animation = 'fadeOut 0.2s ease-out';
+        modal.style.animation = 'slideOut 0.2s ease-out';
+        
+        // Add fadeOut animation
+        const fadeOutStyle = document.createElement('style');
+        fadeOutStyle.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+            @keyframes slideOut {
+                from {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+            }
+        `;
+        document.head.appendChild(fadeOutStyle);
+        
+        setTimeout(() => {
+            document.body.removeChild(overlay);
+            document.head.removeChild(style);
+            document.head.removeChild(fadeOutStyle);
+        }, 200);
+    };
+    
+    // Close on overlay click
+    overlay.onclick = function(e) {
+        if (e.target === overlay) {
+            okBtn.click();
+        }
+    };
 }
 
 // Delete saved plan
