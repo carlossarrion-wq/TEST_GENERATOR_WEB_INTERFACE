@@ -111,6 +111,7 @@ body {
     flex-direction: row;
     align-items: center;
     gap: 2rem;
+    max-width: 100%;
 }
 
 .form-group label {
@@ -121,6 +122,11 @@ body {
 .form-group .slider-container,
 .form-group .dual-slider-container {
     flex: 1;
+}
+
+.form-group #test-types-container {
+    flex: 1;
+    min-width: 0;
 }
 
 .form-row {
@@ -1359,6 +1365,11 @@ label {
 }
 
 /* Test Type Cards */
+#test-types-container {
+    max-width: 100%;
+    width: 100%;
+}
+
 .test-type-card {
     padding: 1rem;
     border: 2px solid rgba(0, 0, 0, 0.1);
@@ -1373,6 +1384,9 @@ label {
     text-align: center;
     background: white;
     min-height: 100px;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .test-type-card:hover {
@@ -1401,6 +1415,8 @@ label {
     font-weight: 500;
     font-size: 0.95rem;
     color: #2d3748;
+    word-break: break-word;
+    width: 100%;
 }
 
 .test-type-card.active span {
