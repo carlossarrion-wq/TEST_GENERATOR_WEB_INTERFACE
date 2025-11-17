@@ -13,7 +13,6 @@ from botocore.exceptions import ClientError
 # Team keyword mapping
 TEAM_KEYWORDS = {
     'darwin': ['darwin'],
-    'deltasmile': ['deltasmile', 'delta smile', 'delta-smile'],
     'mulesoft': ['mulesoft', 'mule soft', 'mule-soft'],
     'sap': ['sap'],
     'saplcorp': ['saplcorp', 'sapl corp', 'sapl-corp']

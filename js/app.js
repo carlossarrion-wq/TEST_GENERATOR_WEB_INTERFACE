@@ -1059,10 +1059,72 @@ let displayedJiraIssues = [];
 let currentJiraPage = 0;
 const ISSUES_PER_PAGE = 20;
 
+// Jira Projects by Team Configuration
+const JIRA_PROJECTS_BY_TEAM = {
+    darwin: {
+        key: 'GAESTG',
+        name: 'Gestión de Aplicaciones y Servicios TG',
+        url: 'https://csarrion.atlassian.net/jira/core/projects/GAESTG'
+    },
+    mulesoft: {
+        key: 'ICACEP',
+        name: 'Integración y Conectividad de Aplicaciones CEP',
+        url: 'https://csarrion.atlassian.net/jira/core/projects/ICACEP'
+    },
+    sap: {
+        key: 'RE',
+        name: 'Reingeniería',
+        url: 'https://csarrion.atlassian.net/jira/core/projects/RE'
+    },
+    saplcorp: {
+        key: 'PDDSE2',
+        name: 'Plataforma de Desarrollo y Despliegue SE2',
+        url: 'https://csarrion.atlassian.net/jira/core/projects/PDDSE2'
+    }
+};
+
 // Open Jira Import Modal
 async function openJiraImportModal() {
     const modal = document.getElementById('jira-import-modal');
     const issuesList = document.getElementById('jira-issues-list');
+    const modalHeader = modal.querySelector('.modal-header h3');
+    
+    // Get user team
+    const userTeam = sessionStorage.getItem('user_team');
+    
+    // Check if user has a valid team
+    if (!userTeam || !JIRA_PROJECTS_BY_TEAM[userTeam]) {
+        issuesList.innerHTML = `
+            <div class="jira-empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <h4>Sin acceso a Jira</h4>
+                <p>Tu usuario no tiene un equipo asignado o el equipo no tiene un proyecto de Jira configurado.</p>
+            </div>
+        `;
+        modal.classList.add('show');
+        return;
+    }
+    
+    // Get project info for the team
+    const projectInfo = JIRA_PROJECTS_BY_TEAM[userTeam];
+    
+    // Update modal header with project badge
+    modalHeader.innerHTML = `
+        Importar desde Jira
+        <span style="
+            display: inline-block;
+            margin-left: 1rem;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        ">${projectInfo.key}</span>
+    `;
     
     // Reset filters
     document.getElementById('jira-search').value = '';
@@ -1076,22 +1138,44 @@ async function openJiraImportModal() {
     displayedJiraIssues = [];
     
     // Show loading
-    issuesList.innerHTML = '<div class="jira-loading"><div class="loading-spinner"></div><p style="margin-top: 1rem;">Cargando incidencias de Jira...</p></div>';
+    issuesList.innerHTML = '<div class="jira-loading"><div class="loading-spinner"></div><p style="margin-top: 1rem;">Cargando incidencias reales de Jira...</p></div>';
     
     modal.classList.add('show');
     
-    // Simulate fetching Jira issues (in real app, this would call Lambda/Jira API)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Generate mock Jira issues
-    allJiraIssues = generateMockJiraIssues();
-    filteredJiraIssues = [...allJiraIssues];
-    
-    // Populate assignee filter
-    populateAssigneeFilter();
-    
-    // Display first page of issues
-    loadMoreJiraIssues();
+    try {
+        // Fetch REAL Jira issues from Lambda
+        console.log(`🔍 Fetching real Jira issues for team: ${userTeam}, project: ${projectInfo.key}`);
+        const response = await window.apiService.fetchJiraIssues(userTeam, 50);
+        
+        console.log(`✅ Received ${response.total_count} issues from Jira project ${response.project_key}`);
+        
+        // Store issues
+        allJiraIssues = response.issues || [];
+        filteredJiraIssues = [...allJiraIssues];
+        
+        // Populate assignee filter
+        populateAssigneeFilter();
+        
+        // Display first page of issues
+        loadMoreJiraIssues();
+        
+    } catch (error) {
+        console.error('❌ Error fetching Jira issues:', error);
+        
+        // Show error message
+        issuesList.innerHTML = `
+            <div class="jira-empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="color: #e53e3e;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <h4>Error al cargar incidencias</h4>
+                <p>${error.message || 'No se pudieron cargar las incidencias de Jira. Por favor, intenta de nuevo.'}</p>
+                <button class="btn-secondary" onclick="openJiraImportModal()" style="margin-top: 1rem;">
+                    Reintentar
+                </button>
+            </div>
+        `;
+    }
 }
 
 // Generate comprehensive mock Jira issues

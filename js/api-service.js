@@ -317,6 +317,21 @@ class APIService {
         });
     }
 
+    // Jira Integration API methods
+
+    /**
+     * Fetch real Jira issues for a team
+     * @param {string} team - Team name (darwin, mulesoft, sap, saplcorp)
+     * @param {number} maxResults - Maximum number of issues to fetch (default: 50)
+     * @returns {Promise<Object>} Jira issues data
+     */
+    async fetchJiraIssues(team, maxResults = 50) {
+        return await this.request('/api/jira', 'POST', {
+            team: team,
+            maxResults: maxResults
+        });
+    }
+
     // Utility methods
 
     /**
