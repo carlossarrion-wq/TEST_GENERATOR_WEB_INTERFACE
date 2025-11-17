@@ -192,7 +192,7 @@ label {
     background: transparent;
     outline: none;
     position: absolute;
-    top: 0;
+    top: 2rem;
     left: 0;
     z-index: 10;
     cursor: pointer;
@@ -201,7 +201,7 @@ label {
 .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 24px;
+    width: 32px;
     height: 32px;
     background: transparent;
     cursor: pointer;
@@ -209,13 +209,21 @@ label {
     border: none;
 }
 
+.slider::-webkit-slider-thumb:active {
+    cursor: pointer;
+}
+
 .slider::-moz-range-thumb {
-    width: 24px;
+    width: 32px;
     height: 32px;
     background: transparent;
     cursor: pointer;
     border-radius: 4px;
     border: none;
+}
+
+.slider::-moz-range-thumb:active {
+    cursor: pointer;
 }
 
 .slider-labels {
@@ -248,6 +256,8 @@ label {
     font-size: 0.9rem;
     font-weight: 500;
     box-shadow: 0 2px 8px rgba(49, 151, 149, 0.3);
+    pointer-events: none;
+    z-index: 5;
 }
 
 /* Buttons */
