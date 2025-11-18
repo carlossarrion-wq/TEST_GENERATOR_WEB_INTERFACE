@@ -341,10 +341,7 @@ Ejemplo:
                         <div style="flex: 1; min-width: 150px;">
                             <select id="jira-type-filter" class="form-control" onchange="filterJiraIssues()">
                                 <option value="">Todos los Tipos</option>
-                                <option value="story">Historia</option>
-                                <option value="bug">Error</option>
-                                <option value="task">Tarea</option>
-                                <option value="epic">Épica</option>
+                                <!-- Options will be populated dynamically from Jira API -->
                             </select>
                         </div>
                     </div>
@@ -352,18 +349,13 @@ Ejemplo:
                         <div style="flex: 1;">
                             <select id="jira-status-filter" class="form-control" onchange="filterJiraIssues()">
                                 <option value="">Todos los Estados</option>
-                                <option value="To Do">Por Hacer</option>
-                                <option value="In Progress">En Progreso</option>
-                                <option value="Done">Completado</option>
-                                <option value="Blocked">Bloqueado</option>
+                                <!-- Options will be populated dynamically from Jira API -->
                             </select>
                         </div>
                         <div style="flex: 1;">
                             <select id="jira-priority-filter" class="form-control" onchange="filterJiraIssues()">
                                 <option value="">Todas las Prioridades</option>
-                                <option value="High">Alta</option>
-                                <option value="Medium">Media</option>
-                                <option value="Low">Baja</option>
+                                <!-- Options will be populated dynamically from Jira API -->
                             </select>
                         </div>
                         <div style="flex: 1;">

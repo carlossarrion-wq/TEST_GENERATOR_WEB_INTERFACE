@@ -11,11 +11,12 @@ import re
 from botocore.exceptions import ClientError
 
 # Team keyword mapping
+# IMPORTANT: Order matters! Check more specific keywords first (saplcorp before sap)
 TEAM_KEYWORDS = {
     'darwin': ['darwin'],
     'mulesoft': ['mulesoft', 'mule soft', 'mule-soft'],
-    'sap': ['sap'],
-    'saplcorp': ['saplcorp', 'sapl corp', 'sapl-corp']
+    'saplcorp': ['saplcorp', 'sapl corp', 'sapl-corp'],
+    'sap': ['sap']
 }
 
 def extract_team_keyword(team_tag):

@@ -429,9 +429,6 @@
             })
             .then(response => response.json())
             .then(data => {
-                // Log complete response for debugging
-                console.log('📦 Respuesta completa del Lambda:', data);
-                
                 if (data.success && data.user) {
                     // Store authentication data
                     sessionStorage.setItem('user_authenticated', 'true');
@@ -439,37 +436,15 @@
                     sessionStorage.setItem('aws_region', 'eu-west-1');
                     sessionStorage.setItem('username', data.user.username || accessKey);
                     
-                    // Display authentication success header
-                    console.log('\n🔐 ===== AUTENTICACIÓN EXITOSA =====');
-                    console.log('👤 Usuario:', data.user.username || 'N/A');
-                    console.log('🏢 Account:', data.user.account || 'N/A');
-                    console.log('📋 ARN:', data.user.arn || 'N/A');
-                    
                     // Handle team information
                     const validTeams = ['darwin', 'mulesoft', 'sap', 'saplcorp'];
                     
                     if (data.user.team && validTeams.includes(data.user.team)) {
-                        // User has valid team
                         sessionStorage.setItem('user_team', data.user.team);
-                        console.log('✅ EQUIPO ASIGNADO:', data.user.team.toUpperCase());
-                        
                         if (data.user.team_full) {
                             sessionStorage.setItem('user_team_full', data.user.team_full);
-                            console.log('📝 Etiqueta Team original:', '"' + data.user.team_full + '"');
                         }
-                    } else if (data.user.team_full && !data.user.team) {
-                        // User has Team tag but value not recognized
-                        console.log('⚠️ ADVERTENCIA: Este usuario NO tiene equipo asignado');
-                        console.log('📋 Etiqueta Team encontrada:', '"' + data.user.team_full + '"');
-                        console.log('❌ No coincide con ningún equipo válido:', validTeams.join(', '));
-                    } else {
-                        // User has no Team tag at all
-                        console.log('⚠️ ADVERTENCIA: Este usuario NO tiene equipo asignado');
-                        console.log('📋 Motivo: No se encontró la etiqueta "Team" en IAM');
-                        console.log('💡 Equipos válidos:', validTeams.join(', '));
                     }
-                    
-                    console.log('====================================\n');
                     
                     // Success feedback
                     loginBtn.innerHTML = `

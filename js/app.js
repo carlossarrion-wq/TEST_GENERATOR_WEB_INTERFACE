@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     initializeApp();
+    
+    // Monitor for team changes to refresh Jira filters
+    monitorTeamChanges();
 });
 
 // Initialize application
@@ -29,6 +32,118 @@ function initializeApp() {
     
     // Initialize button state
     updateGenerateButtonState();
+}
+
+// Monitor for team changes in sessionStorage
+function monitorTeamChanges() {
+    let currentTeam = sessionStorage.getItem('user_team');
+    
+    // Check for team changes every second
+    setInterval(() => {
+        const newTeam = sessionStorage.getItem('user_team');
+        
+        // If team has changed
+        if (newTeam !== currentTeam) {
+            currentTeam = newTeam;
+            
+            // If Jira modal is open, refresh it with new team's data
+            const jiraModal = document.getElementById('jira-import-modal');
+            if (jiraModal && jiraModal.classList.contains('show')) {
+                refreshJiraModalForNewTeam();
+            }
+        }
+    }, 1000);
+}
+
+// Refresh Jira modal when team changes
+async function refreshJiraModalForNewTeam() {
+    const issuesList = document.getElementById('jira-issues-list');
+    const modalHeader = document.querySelector('#jira-import-modal .modal-header h3');
+    
+    // Get new user team
+    const userTeam = sessionStorage.getItem('user_team');
+    
+    // Check if user has a valid team
+    if (!userTeam || !JIRA_PROJECTS_BY_TEAM[userTeam]) {
+        issuesList.innerHTML = `
+            <div class="jira-empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <h4>Sin acceso a Jira</h4>
+                <p>Tu usuario no tiene un equipo asignado o el equipo no tiene un proyecto de Jira configurado.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Get project info for the team
+    const projectInfo = JIRA_PROJECTS_BY_TEAM[userTeam];
+    
+    // Update modal header with new project badge
+    modalHeader.innerHTML = `
+        Importar desde Jira
+        <span style="
+            display: inline-block;
+            margin-left: 1rem;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        ">${projectInfo.key}</span>
+    `;
+    
+    // Clear all filters
+    document.getElementById('jira-search').value = '';
+    document.getElementById('jira-type-filter').value = '';
+    document.getElementById('jira-status-filter').value = '';
+    document.getElementById('jira-priority-filter').value = '';
+    document.getElementById('jira-assignee-filter').value = '';
+    
+    // Reset pagination
+    currentJiraPage = 0;
+    displayedJiraIssues = [];
+    
+    // Show loading
+    issuesList.innerHTML = '<div class="jira-loading"><div class="loading-spinner"></div><p style="margin-top: 1rem;">Cargando incidencias del nuevo proyecto...</p></div>';
+    
+    try {
+        // Fetch REAL Jira issues from Lambda for new team
+        const response = await window.apiService.fetchJiraIssues(userTeam, 50);
+        
+        // Store new issues
+        allJiraIssues = response.issues || [];
+        filteredJiraIssues = [...allJiraIssues];
+        
+        // Repopulate filters with NEW project's data
+        populateAssigneeFilter();
+        populateStatusFilter();
+        populateTypeFilter();
+        populatePriorityFilter();
+        
+        // Display first page of issues
+        loadMoreJiraIssues();
+        
+    } catch (error) {
+        console.error('❌ Error fetching Jira issues for new team:', error);
+        
+        // Show error message
+        issuesList.innerHTML = `
+            <div class="jira-empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="color: #e53e3e;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <h4>Error al cargar incidencias</h4>
+                <p>${error.message || 'No se pudieron cargar las incidencias del nuevo proyecto. Por favor, intenta de nuevo.'}</p>
+                <button class="btn-secondary" onclick="refreshJiraModalForNewTeam()" style="margin-top: 1rem;">
+                    Reintentar
+                </button>
+            </div>
+        `;
+    }
 }
 
 // Update Generate Test Plan button state
@@ -231,27 +346,8 @@ async function generateTestPlan() {
     btn.innerHTML = '<div class="loading-spinner"></div> Generando plan de pruebas...';
     
     try {
-        // Log start of generation
-        console.log("\n" + "=".repeat(80));
-        console.log("🚀 INICIANDO GENERACIÓN CON LANGCHAIN + HAIKU 4.5");
-        console.log("=".repeat(80));
-        console.log("📝 Título:", title);
-        console.log("📋 Requerimientos:", requirements.substring(0, 100) + "...");
-        console.log("🎯 Cobertura objetivo:", coverage + "%");
-        console.log("🔢 Rango de casos:", minCases, "-", maxCases);
-        console.log("");
-        
         // Get user team from session storage
         const userTeam = sessionStorage.getItem('user_team');
-        
-        // Call real API
-        console.log("📡 Llamando a la API de generación...");
-        if (userTeam) {
-            console.log("👥 Team del usuario:", userTeam);
-            console.log("🔍 OpenSearch: Se usarán índices específicos del equipo", userTeam);
-        } else {
-            console.log("👥 Sin equipo asignado: Se usarán todos los índices disponibles");
-        }
         
         const requestData = {
             title: title,
@@ -264,37 +360,8 @@ async function generateTestPlan() {
         
         const response = await window.apiService.generateTestPlanWithAI(requestData);
         
-        console.log("✅ Respuesta recibida de la API");
-        console.log("");
-        
-        // Log each step of the process
-        console.log("📋 Paso 1/5: Requirements Analyzer");
-        console.log("   └─ Analizando requerimientos funcionales...");
-        console.log("   └─ Identificando casos de prueba necesarios...");
-        
-        console.log("\n🔍 Paso 2/5: Knowledge Base Retriever");
-        console.log("   └─ Buscando patrones similares en la base de conocimiento...");
-        console.log("   └─ Recuperando mejores prácticas...");
-        
-        console.log("\n✨ Paso 3/5: Test Case Generator");
-        console.log("   └─ Generando casos de prueba con LangChain...");
-        console.log("   └─ Aplicando plantillas y patrones...");
-        
-        console.log("\n📊 Paso 4/5: Coverage Calculator");
-        console.log("   └─ Calculando cobertura de requerimientos...");
-        console.log("   └─ Verificando completitud...");
-        
-        console.log("\n✅ Paso 5/5: Quality Validator");
-        console.log("   └─ Validando calidad de los casos generados...");
-        console.log("   └─ Verificando consistencia...");
-        
         // Process response
         testCases = response.test_cases || [];
-        
-        console.log("\n🎉 GENERACIÓN COMPLETADA EXITOSAMENTE");
-        console.log("   └─ Total de casos generados:", testCases.length);
-        console.log("   └─ Cobertura alcanzada:", response.coverage || coverage + "%");
-        console.log("=".repeat(80) + "\n");
         
         // Get reference if it exists
         const reference = document.getElementById('plan-reference').value.trim();
@@ -323,9 +390,7 @@ async function generateTestPlan() {
         updateGenerateButtonState();
         
     } catch (error) {
-        console.error("❌ ERROR EN LA GENERACIÓN:", error);
-        console.error("   └─ Mensaje:", error.message);
-        console.error("   └─ Detalles:", error);
+        console.error("Error generating test plan:", error);
         
         // Determine appropriate error message
         let errorTitle = 'Error al generar el plan de pruebas';
@@ -1144,17 +1209,21 @@ async function openJiraImportModal() {
     
     try {
         // Fetch REAL Jira issues from Lambda
-        console.log(`🔍 Fetching real Jira issues for team: ${userTeam}, project: ${projectInfo.key}`);
         const response = await window.apiService.fetchJiraIssues(userTeam, 50);
         
-        console.log(`✅ Received ${response.total_count} issues from Jira project ${response.project_key}`);
-        
-        // Store issues
+        // Store issues with defensive checks
         allJiraIssues = response.issues || [];
         filteredJiraIssues = [...allJiraIssues];
         
-        // Populate assignee filter
-        populateAssigneeFilter();
+        // Populate filters AFTER data is loaded
+        try {
+            populateAssigneeFilter();
+            populateStatusFilter();
+            populateTypeFilter();
+            populatePriorityFilter();
+        } catch (filterError) {
+            console.error('Error during filter population:', filterError);
+        }
         
         // Display first page of issues
         loadMoreJiraIssues();
@@ -1329,7 +1398,7 @@ function populateAssigneeFilter() {
     const uniqueAssignees = [...new Set(allJiraIssues.map(issue => issue.assignee))].sort();
     
     // Clear existing options except "All Assignees"
-    assigneeFilter.innerHTML = '<option value="">All Assignees</option>';
+    assigneeFilter.innerHTML = '<option value="">Todos los Asignados</option>';
     
     // Add unique assignees
     uniqueAssignees.forEach(assignee => {
@@ -1340,43 +1409,183 @@ function populateAssigneeFilter() {
     });
 }
 
+// Populate priority filter dropdown dynamically
+function populatePriorityFilter() {
+    const priorityFilter = document.getElementById('jira-priority-filter');
+    
+    if (!priorityFilter) {
+        console.error('Priority filter element not found');
+        return;
+    }
+    
+    // Extract unique priorities, filtering out undefined/null values
+    const uniquePriorities = [...new Set(
+        allJiraIssues
+            .map(issue => issue.priority)
+            .filter(priority => priority !== undefined && priority !== null && priority !== '')
+    )].sort();
+    
+    // Clear existing options except "All Priorities"
+    priorityFilter.innerHTML = '<option value="">Todas las Prioridades</option>';
+    
+    // Priority translations for display
+    const priorityTranslations = {
+        'Highest': 'Muy Alta',
+        'High': 'Alta',
+        'Medium': 'Media',
+        'Low': 'Baja',
+        'Lowest': 'Muy Baja'
+    };
+    
+    // Add unique priorities from actual data
+    uniquePriorities.forEach(priority => {
+        const option = document.createElement('option');
+        option.value = priority;
+        option.textContent = priorityTranslations[priority] || priority;
+        priorityFilter.appendChild(option);
+    });
+}
+
+// Populate status filter dropdown dynamically
+function populateStatusFilter() {
+    const statusFilter = document.getElementById('jira-status-filter');
+    
+    if (!statusFilter) {
+        console.error('Status filter element not found');
+        return;
+    }
+    
+    // Extract unique statuses, filtering out undefined/null values
+    const uniqueStatuses = [...new Set(
+        allJiraIssues
+            .map(issue => issue.status)
+            .filter(status => status !== undefined && status !== null && status !== '')
+    )].sort();
+    
+    // Clear existing options except "All Statuses"
+    statusFilter.innerHTML = '<option value="">Todos los Estados</option>';
+    
+    // Add unique statuses from actual data
+    uniqueStatuses.forEach(status => {
+        const option = document.createElement('option');
+        option.value = status;
+        option.textContent = status;
+        statusFilter.appendChild(option);
+    });
+}
+
+// Populate type filter dropdown dynamically
+function populateTypeFilter() {
+    const typeFilter = document.getElementById('jira-type-filter');
+    
+    if (!typeFilter) {
+        console.error('Type filter element not found');
+        return;
+    }
+    
+    // Extract unique types, filtering out undefined/null values
+    const uniqueTypes = [...new Set(
+        allJiraIssues
+            .map(issue => issue.type)
+            .filter(type => type !== undefined && type !== null && type !== '')
+    )].sort();
+    
+    // Clear existing options except "All Types"
+    typeFilter.innerHTML = '<option value="">Todos los Tipos</option>';
+    
+    // Type translations for display
+    const typeTranslations = {
+        'story': 'Historia',
+        'bug': 'Error',
+        'task': 'Tarea',
+        'epic': 'Épica',
+        'subtask': 'Subtarea',
+        'improvement': 'Mejora'
+    };
+    
+    // Add unique types from actual data
+    uniqueTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = typeTranslations[type.toLowerCase()] || type;
+        typeFilter.appendChild(option);
+    });
+}
+
 // Filter Jira issues based on all filters
 function filterJiraIssues() {
-    const searchText = document.getElementById('jira-search').value.toLowerCase();
-    const typeFilter = document.getElementById('jira-type-filter').value.toLowerCase();
-    const statusFilter = document.getElementById('jira-status-filter').value;
-    const priorityFilter = document.getElementById('jira-priority-filter').value;
-    const assigneeFilter = document.getElementById('jira-assignee-filter').value;
-    
+    const searchText = document.getElementById('jira-search').value.toLowerCase().trim();
+    const typeFilter = document.getElementById('jira-type-filter').value.trim();
+    const statusFilter = document.getElementById('jira-status-filter').value.trim();
+    const priorityFilter = document.getElementById('jira-priority-filter').value.trim();
+    const assigneeFilter = document.getElementById('jira-assignee-filter').value.trim();
+
     filteredJiraIssues = allJiraIssues.filter(issue => {
-        // Filter by type
-        if (typeFilter && issue.type !== typeFilter) return false;
-        
-        // Filter by status
-        if (statusFilter && issue.status !== statusFilter) return false;
-        
-        // Filter by priority
-        if (priorityFilter && issue.priority !== priorityFilter) return false;
-        
-        // Filter by assignee
-        if (assigneeFilter && issue.assignee !== assigneeFilter) return false;
-        
+        // Filter by type (exact match - case sensitive since API returns lowercase)
+        if (typeFilter && issue.type !== typeFilter) {
+            return false;
+        }
+
+        // Filter by status (exact match - case sensitive since statuses vary by project)
+        if (statusFilter && issue.status !== statusFilter) {
+            return false;
+        }
+
+        // Filter by priority (exact match - case sensitive)
+        if (priorityFilter && issue.priority !== priorityFilter) {
+            return false;
+        }
+
+        // Filter by assignee (exact match)
+        if (assigneeFilter && issue.assignee !== assigneeFilter) {
+            return false;
+        }
+
         // Filter by search text (ID, title, or description)
         if (searchText) {
-            const matchesSearch = 
+            const matchesSearch =
                 issue.key.toLowerCase().includes(searchText) ||
                 issue.summary.toLowerCase().includes(searchText) ||
-                issue.description.toLowerCase().includes(searchText);
-            if (!matchesSearch) return false;
+                (issue.description && issue.description.toLowerCase().includes(searchText));
+            if (!matchesSearch) {
+                return false;
+            }
         }
-        
+
         return true;
     });
-    
+
     // Reset pagination and display
     currentJiraPage = 0;
     displayedJiraIssues = [];
     loadMoreJiraIssues();
+}
+
+// Helper function to normalize Jira status values
+function normalizeJiraStatus(status) {
+    if (!status) return '';
+    
+    // Convert to lowercase and normalize common status variations
+    const normalized = status.toLowerCase().trim();
+    
+    // Map common Jira status variations to standard values
+    const statusMap = {
+        'to do': 'todo',
+        'todo': 'todo',
+        'in progress': 'in-progress',
+        'in-progress': 'in-progress',
+        'done': 'done',
+        'blocked': 'blocked',
+        'backlog': 'backlog',
+        'selected for development': 'todo',
+        'in review': 'in-progress',
+        'ready for testing': 'in-progress',
+        'testing': 'in-progress',
+        'closed': 'done',
+        'resolved': 'done'
+    };
+    
+    return statusMap[normalized] || normalized.replace(/\s+/g, '-');
 }
 
 // Clear all Jira filters
