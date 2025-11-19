@@ -386,6 +386,31 @@ async function generateTestPlan() {
         document.getElementById('chat-section').style.display = 'block';
         document.getElementById('actions-section').style.display = 'block';
         
+        // Auto-scroll to where config section ends (so it's just out of view)
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                const configSection = document.getElementById('config-section');
+                
+                if (configSection) {
+                    // Get header height for offset calculation
+                    const headerHeight = document.querySelector('.header')?.offsetHeight || 0;
+                    
+                    // Calculate the bottom position of the config section
+                    const configRect = configSection.getBoundingClientRect();
+                    const configBottom = configRect.bottom + window.pageYOffset;
+                    
+                    // Scroll down with moderate offset to position just past config section
+                    const scrollPosition = configBottom - headerHeight + 150;
+                    
+                    // Perform smooth scroll
+                    window.scrollTo({
+                        top: scrollPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 300);
+        });
+        
         // Update button text to "Generar nuevo plan" after first generation
         updateGenerateButtonState();
         
@@ -494,7 +519,7 @@ function displayTestCases() {
         row.onclick = function(e) {
             // Don't trigger row click if clicking on action buttons
             if (!e.target.closest('.btn-icon')) {
-                editTestCase(testCase.id);
+                viewTestSteps(testCase.id);
             }
         };
         
@@ -509,12 +534,6 @@ function displayTestCases() {
             <td>${testCase.expectedResult}</td>
             <td>
                 <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                    <button class="btn-icon btn-icon-view" onclick="event.stopPropagation(); viewTestSteps('${testCase.id}')" title="Ver Pasos">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </button>
                     <button class="btn-icon btn-icon-edit" onclick="event.stopPropagation(); editTestCase('${testCase.id}')" title="Editar Caso de Prueba">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
