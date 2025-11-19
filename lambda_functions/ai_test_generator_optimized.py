@@ -2,6 +2,7 @@ import json
 import boto3
 import os
 import time
+import uuid
 from datetime import datetime
 from db_utils import (
     DatabaseConnection, create_response, create_error_response,
@@ -31,11 +32,27 @@ def lambda_handler(event, context):
         method = event['httpMethod']
         path_parameters = event.get('pathParameters') or {}
         
-        if method != 'POST':
-            return create_error_response(405, f"Method {method} not allowed", "MethodNotAllowed")
-        
         body = json.loads(event['body']) if event['body'] else {}
         action = path_parameters.get('action', body.get('action'))
+        
+        # Handle async endpoints
+        if action == 'async':
+            if method == 'POST':
+                return start_async_generation(body)
+            else:
+                return create_error_response(405, f"Method {method} not allowed for async", "MethodNotAllowed")
+        elif action == 'async-status':
+            if method == 'GET':
+                task_id = path_parameters.get('task_id')
+                if not task_id:
+                    return create_error_response(400, "Task ID required", "ValidationError")
+                return get_async_status(task_id)
+            else:
+                return create_error_response(405, f"Method {method} not allowed for async-status", "MethodNotAllowed")
+        
+        # Handle synchronous endpoints
+        if method != 'POST':
+            return create_error_response(405, f"Method {method} not allowed", "MethodNotAllowed")
         
         if action == 'generate-plan':
             return generate_test_plan_with_langchain(body)
@@ -53,6 +70,121 @@ def lambda_handler(event, context):
         import traceback
         traceback.print_exc()
         return create_error_response(500, "Internal server error", "InternalServerError")
+
+def start_async_generation(data):
+    """Start asynchronous test plan generation and return task_id"""
+    try:
+        # Generate unique task ID
+        task_id = str(uuid.uuid4())
+        
+        print(f"🚀 Starting async generation with task_id: {task_id}")
+        
+        # Store initial task state in MySQL
+        with DatabaseConnection() as cursor:
+            cursor.execute("""
+                INSERT INTO async_tasks (task_id, status, request_data, message)
+                VALUES (%s, %s, %s, %s)
+            """, (task_id, 'processing', json.dumps(data), 'Generando plan de pruebas...'))
+        
+        # Start the actual generation process
+        try:
+            result = generate_test_plan_with_langchain(data)
+            
+            # Parse the result
+            result_body = json.loads(result['body'])
+            
+            if result['statusCode'] == 201:
+                # Success - update task with completed status
+                with DatabaseConnection() as cursor:
+                    cursor.execute("""
+                        UPDATE async_tasks 
+                        SET status = %s, result_data = %s, message = %s, completed_at = NOW()
+                        WHERE task_id = %s
+                    """, ('completed', json.dumps(result_body), 'Plan de pruebas generado exitosamente', task_id))
+                print(f"✅ Task {task_id} completed successfully")
+            else:
+                # Error - update task with failed status
+                with DatabaseConnection() as cursor:
+                    cursor.execute("""
+                        UPDATE async_tasks 
+                        SET status = %s, error_message = %s, message = %s, completed_at = NOW()
+                        WHERE task_id = %s
+                    """, ('failed', json.dumps(result_body), result_body.get('error', 'Error al generar plan de pruebas'), task_id))
+                print(f"❌ Task {task_id} failed: {result_body.get('error')}")
+        
+        except Exception as gen_error:
+            # Handle generation errors
+            print(f"❌ Generation error for task {task_id}: {str(gen_error)}")
+            import traceback
+            traceback.print_exc()
+            
+            with DatabaseConnection() as cursor:
+                cursor.execute("""
+                    UPDATE async_tasks 
+                    SET status = %s, error_message = %s, message = %s, completed_at = NOW()
+                    WHERE task_id = %s
+                """, ('failed', str(gen_error), f'Error interno: {str(gen_error)}', task_id))
+        
+        # Return task_id immediately
+        return create_response(202, {
+            'task_id': task_id,
+            'status': 'processing',
+            'message': 'Generación iniciada. Use el task_id para consultar el estado.'
+        })
+    
+    except Exception as e:
+        print(f"Error starting async generation: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return create_error_response(500, f"Error starting async generation: {str(e)}", "AsyncStartError")
+
+def get_async_status(task_id):
+    """Get the status of an async task from MySQL"""
+    try:
+        print(f"📊 Checking status for task_id: {task_id}")
+        
+        with DatabaseConnection() as cursor:
+            cursor.execute("""
+                SELECT task_id, status, result_data, error_message, message, created_at
+                FROM async_tasks
+                WHERE task_id = %s
+            """, (task_id,))
+            
+            task = cursor.fetchone()
+        
+        if not task:
+            return create_error_response(404, f"Task {task_id} not found", "TaskNotFound")
+        
+        status = task['status']
+        
+        if status == 'completed':
+            # Return the completed result
+            result = json.loads(task['result_data'])
+            return create_response(200, {
+                'status': 'completed',
+                'result': result
+            })
+        elif status == 'failed':
+            # Return the error
+            error = task.get('error_message', 'Unknown error')
+            return create_response(200, {
+                'status': 'failed',
+                'error': error,
+                'message': task.get('message', 'Error al generar plan de pruebas')
+            })
+        else:
+            # Still processing
+            return create_response(200, {
+                'status': 'processing',
+                'message': task.get('message', 'Procesando...'),
+                'created_at': task.get('created_at').isoformat() if task.get('created_at') else None
+            })
+    
+    except Exception as e:
+        print(f"Error getting async status: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return create_error_response(500, f"Error getting task status: {str(e)}", "AsyncStatusError")
 
 def generate_test_plan_with_langchain(data):
     """Generate test plan using complete LangChain agent with all specialized tools"""
@@ -94,7 +226,8 @@ def generate_test_plan_with_langchain(data):
         
         # Extract test cases from agent result
         if not agent_result.get('success'):
-            return create_error_response(500, "Agent failed to generate test plan", "AgentError")
+            error_msg = agent_result.get('error', 'Agent failed to generate test plan')
+            return create_error_response(500, error_msg, "AgentError")
         
         agent_data = agent_result.get('data', {})
         test_cases = agent_data.get('test_cases', [])
@@ -413,7 +546,9 @@ def generate_chat_response_optimized(plan_context, chat_history, user_message):
     try:
         history_text = ""
         for msg in chat_history[-3:]:
-            history_text += f"{msg['message_type']}: {msg['content'][:200]}\n"
+            msg_type = msg['message_type']
+            msg_content = msg['content'][:200]
+            history_text += f"{msg_type}: {msg_content}\n"
         
         system_prompt = "Eres un asistente experto en testing. Proporciona respuestas útiles y concisas sobre planes de prueba."
         

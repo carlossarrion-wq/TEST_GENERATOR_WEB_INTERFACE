@@ -216,8 +216,8 @@ function setupSliders() {
     const dualSegmentsContainer = document.createElement('div');
     dualSegmentsContainer.className = 'dual-slider-track-segments';
     
-    // Create 20 segments for test cases (1-20)
-    for (let i = 0; i < 20; i++) {
+    // Create 10 segments for test cases (1-10)
+    for (let i = 0; i < 10; i++) {
         const segment = document.createElement('div');
         segment.className = 'dual-slider-segment';
         segment.dataset.segmentIndex = i;
@@ -243,8 +243,8 @@ function setupSliders() {
         maxCasesValue.textContent = max;
         
         // Calculate percentages for value badges
-        const minPercent = ((min - 1) / (20 - 1)) * 100;
-        const maxPercent = ((max - 1) / (20 - 1)) * 100;
+        const minPercent = ((min - 1) / (10 - 1)) * 100;
+        const maxPercent = ((max - 1) / (10 - 1)) * 100;
         
         // Update value positions
         minCasesValue.style.left = minPercent + '%';
@@ -358,7 +358,16 @@ async function generateTestPlan() {
             user_team: userTeam || null  // Always include user_team (null if not available)
         };
         
-        const response = await window.apiService.generateTestPlanWithAI(requestData);
+        // Progress callback to update UI
+        const onProgress = (progress) => {
+            if (progress.status === 'processing') {
+                btn.innerHTML = `<div class="loading-spinner"></div> ${progress.message}`;
+            } else if (progress.status === 'completed') {
+                btn.innerHTML = `<div class="loading-spinner"></div> Finalizando...`;
+            }
+        };
+        
+        const response = await window.apiService.generateTestPlanWithAI(requestData, onProgress);
         
         // Process response
         testCases = response.test_cases || [];

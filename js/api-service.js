@@ -237,16 +237,110 @@ class APIService {
     // AI Generation API methods
 
     /**
-     * Generate a test plan using AI
+     * Generate a test plan using AI with async polling support
      * @param {Object} requirements - Requirements for AI generation
+     * @param {Function} onProgress - Optional callback for progress updates
      * @returns {Promise<Object>} Generated test plan
      */
-    async generateTestPlanWithAI(requirements) {
-        // Use the correct endpoint for AI generation
-        return await this.request('/api/ai', 'POST', {
+    async generateTestPlanWithAI(requirements, onProgress = null) {
+        // Start async generation
+        const startResponse = await this.request('/api/ai/async', 'POST', {
             action: 'generate-plan',
             ...requirements
         });
+        
+        // If we got a task_id, poll for completion
+        if (startResponse.task_id) {
+            return await this.pollTaskCompletion(startResponse.task_id, onProgress);
+        }
+        
+        // Fallback: if response is immediate (shouldn't happen for 8-10 cases)
+        return startResponse;
+    }
+
+    /**
+     * Poll for async task completion
+     * @param {string} taskId - Task ID to poll
+     * @param {Function} onProgress - Optional callback for progress updates
+     * @returns {Promise<Object>} Task result
+     */
+    async pollTaskCompletion(taskId, onProgress = null) {
+        const maxAttempts = 60; // 60 attempts * 2 seconds = 2 minutes max
+        const pollInterval = 2000; // 2 seconds
+        
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                // Call progress callback if provided
+                if (onProgress) {
+                    onProgress({
+                        status: 'processing',
+                        attempt: attempt,
+                        maxAttempts: maxAttempts,
+                        message: `Generando casos de prueba... (${attempt}/${maxAttempts})`
+                    });
+                }
+                
+                // Check task status
+                const statusResponse = await this.request(`/api/ai/async/${taskId}`, 'GET');
+                
+                // Task completed successfully
+                if (statusResponse.status === 'completed') {
+                    if (onProgress) {
+                        onProgress({
+                            status: 'completed',
+                            message: '✅ Casos de prueba generados exitosamente'
+                        });
+                    }
+                    return statusResponse.result;
+                }
+                
+                // Task failed
+                if (statusResponse.status === 'failed') {
+                    throw new APIError(
+                        statusResponse.error || 'Task failed',
+                        500,
+                        statusResponse
+                    );
+                }
+                
+                // Task still processing, wait before next poll
+                if (statusResponse.status === 'processing') {
+                    await this.sleep(pollInterval);
+                    continue;
+                }
+                
+                // Unknown status
+                throw new APIError(`Unknown task status: ${statusResponse.status}`, 500);
+                
+            } catch (error) {
+                // If it's the last attempt, throw the error
+                if (attempt === maxAttempts) {
+                    throw new APIError(
+                        'Timeout: La generación está tomando más tiempo del esperado. Por favor, intenta con menos casos.',
+                        408
+                    );
+                }
+                
+                // For other errors, rethrow immediately
+                if (error instanceof APIError && error.status !== 0) {
+                    throw error;
+                }
+                
+                // Network error, wait and retry
+                await this.sleep(pollInterval);
+            }
+        }
+        
+        throw new APIError('Timeout: Task did not complete in time', 408);
+    }
+
+    /**
+     * Sleep utility for polling
+     * @param {number} ms - Milliseconds to sleep
+     * @returns {Promise<void>}
+     */
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**

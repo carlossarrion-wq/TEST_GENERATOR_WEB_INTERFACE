@@ -167,13 +167,15 @@ class OpenSearchClient:
             
             # Show which index each result came from
             for i, result in enumerate(results[:3], 1):  # Show top 3
-                print(f"\n   Result {i}:")
-                print(f"   └─ Index: {result['index']}")
-                print(f"   └─ Score: {result['score']:.2f}")
-                print(f"   └─ Title: {result['title'][:60]}...")
+                print("\n   Result {0}:".format(i))
+                print("   └─ Index: {0}".format(result['index']))
+                print("   └─ Score: {0:.2f}".format(result['score']))
+                result_title = result['title'][:60]
+                print("   └─ Title: {0}...".format(result_title))
             
             if len(results) > 3:
-                print(f"\n   ... and {len(results) - 3} more results")
+                remaining = len(results) - 3
+                print("\n   ... and {0} more results".format(remaining))
             
             print("=" * 80)
             

@@ -170,8 +170,32 @@ Creates detailed test cases with steps, preconditions, and expected results."""
             min_cases = generation_options.get('min_test_cases', 5)
             max_cases = generation_options.get('max_test_cases', 15)
             
-            # Limitar target_cases a máximo 12 para evitar problemas de tokens
-            target_cases = min(12, (min_cases + max_cases) // 2)
+            # Dynamic token allocation based on number of cases
+            # Total available: 8000 tokens (max_tokens configured in API call - Haiku 4.5 limit)
+            # Reserve 600 tokens for overhead (prompt, JSON structure, etc.)
+            available_tokens = 7400
+            
+            # Calculate tokens per case dynamically based on max_cases
+            # More cases = fewer tokens per case (more concise)
+            # Fewer cases = more tokens per case (more detailed)
+            tokens_per_case = available_tokens // max_cases
+            
+            # Safety limits:
+            # - Minimum 300 tokens per case (concise but complete)
+            # - Maximum 600 tokens per case (detailed with all fields)
+            tokens_per_case = max(300, min(600, tokens_per_case))
+            
+            # Calculate maximum safe cases we can generate with available tokens
+            max_safe_cases = available_tokens // tokens_per_case
+            
+            # Allow agent flexibility within min-max range, but respect token limits
+            target_cases = min(max_safe_cases, max_cases)
+            
+            print(f"📊 Dynamic token allocation:")
+            print(f"   - Requested range: {min_cases}-{max_cases} cases")
+            print(f"   - Tokens per case: {tokens_per_case}")
+            print(f"   - Max safe cases: {max_safe_cases}")
+            print(f"   - Target cases: {target_cases}")
             
             # Build comprehensive requirements list (ALL requirements, not just 5)
             reqs_list = []
@@ -232,7 +256,12 @@ Creates detailed test cases with steps, preconditions, and expected results."""
                     kb_summary = "\n\nBUENAS PRÁCTICAS (Knowledge Base):\n" + "\n".join(kb_list)
             
             # Enhanced generation prompt with EXPLICIT requirement mapping
-            generation_prompt = """Genera EXACTAMENTE {target_cases} casos de prueba que VALIDEN DIRECTAMENTE los requerimientos funcionales especificados.
+            generation_prompt = """Genera entre {min_cases} y {target_cases} casos de prueba que VALIDEN DIRECTAMENTE los requerimientos funcionales especificados.
+
+⚠️ FLEXIBILIDAD: Analiza la complejidad de los requerimientos y decide cuántos casos generar dentro del rango especificado.
+- Si los requerimientos son simples: genera cerca del mínimo ({min_cases} casos)
+- Si los requerimientos son complejos o numerosos: genera más casos (hasta {target_cases} casos)
+- Prioriza CALIDAD sobre cantidad - cada caso debe ser completo y bien estructurado
 
 ⚠️ REGLA CRÍTICA: CADA caso de prueba DEBE validar UNO O MÁS requerimientos funcionales específicos de la lista.
 
@@ -281,6 +310,7 @@ INSTRUCCIONES OBLIGATORIAS:
 - Los ejemplos en el system prompt son solo para mostrar la ESTRUCTURA, no el contenido
 
 Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales.""".format(
+                min_cases=min_cases,
                 target_cases=target_cases,
                 reqs_summary=reqs_summary,
                 edge_cases_summary=edge_cases_summary,
@@ -290,11 +320,12 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales.""".format(
             )
             
             # Usar Prompt Caching con la versión correcta de API
+            # Aumentar max_tokens a 8000 (límite real de Haiku 4.5) para soportar hasta 15 casos de prueba
             response = self.bedrock_client.invoke_model(
                 modelId=self.model_id,
                 body=json.dumps({
                     "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": 4000,
+                    "max_tokens": 8000,
                     "temperature": 0.3,
                     "system": [
                         {
@@ -321,12 +352,33 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales.""".format(
             
             # Ensure we have test cases
             if not result.get('test_cases'):
-                print("⚠️ No test cases generated")
+                print("⚠️ No test cases generated - checking if response was truncated")
+                print(f"🔍 Content length: {len(content)} chars")
+                
+                # Check if response might have been truncated
+                if len(content) > 3000 and not content.strip().endswith('}'):
+                    # Calculate safe maximum based on current token allocation
+                    safe_max = max_safe_cases - 2  # Leave safety margin
+                    error_msg = f"La respuesta fue truncada debido a la cantidad de casos solicitados. Intenta reducir el número máximo de casos a {safe_max} o menos. (Actualmente solicitaste: {max_cases} casos)"
+                elif len(content) < 500:
+                    error_msg = "La respuesta del modelo fue muy corta. Esto puede deberse a un problema de conectividad o configuración. Por favor, intenta nuevamente."
+                else:
+                    error_msg = f"No se pudieron generar casos de prueba. El modelo generó una respuesta pero no contenía casos válidos. Por favor, intenta con requerimientos más específicos o reduce la cantidad de casos solicitados (actualmente: {min_cases}-{max_cases})."
+                
                 return {
-                    "error": "No se pudieron generar casos de prueba. Por favor, intenta con menos casos o requerimientos más específicos.",
+                    "error": error_msg,
                     "generation_completed": False,
                     "test_cases": [],
-                    "total_generated": 0
+                    "total_generated": 0,
+                    "debug_info": {
+                        "content_length": len(content),
+                        "target_cases": target_cases,
+                        "min_cases": min_cases,
+                        "max_cases": max_cases,
+                        "max_safe_cases": max_safe_cases,
+                        "tokens_per_case": tokens_per_case,
+                        "available_tokens": available_tokens
+                    }
                 }
             else:
                 # Validate uniqueness and quality

@@ -1,0 +1,1 @@
+{"statusCode": 200, "body": "{\"message\": \"Tabla async_tasks creada exitosamente\", \"columns\": [\"id: int\", \"task_id: varchar(36)\", \"status: enum('processing','completed','failed')\", \"request_data: text\", \"result_data: longtext\", \"error_message: text\", \"message: varchar(500)\", \"created_at: timestamp\", \"updated_at: timestamp\", \"completed_at: timestamp\"]}"}
