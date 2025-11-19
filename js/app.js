@@ -1907,15 +1907,46 @@ function loadSelectedPlan() {
     // Update button state (disable if test cases exist, enable if empty)
     updateGenerateButtonState();
     
-    // Show success notification
-    showSuccessNotification(`Plan de pruebas cargado exitosamente`, plan.title);
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Show success notification with callback for auto-scroll
+    showSuccessNotificationWithCallback(
+        `Plan de pruebas cargado exitosamente`, 
+        plan.title,
+        function() {
+            // Auto-scroll after notification is closed
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    const configSection = document.getElementById('config-section');
+                    
+                    if (configSection) {
+                        // Get header height for offset calculation
+                        const headerHeight = document.querySelector('.header')?.offsetHeight || 0;
+                        
+                        // Calculate the bottom position of the config section
+                        const configRect = configSection.getBoundingClientRect();
+                        const configBottom = configRect.bottom + window.pageYOffset;
+                        
+                        // Scroll down with moderate offset to position just past config section
+                        const scrollPosition = configBottom - headerHeight + 150;
+                        
+                        // Perform smooth scroll
+                        window.scrollTo({
+                            top: scrollPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                }, 100);
+            });
+        }
+    );
 }
 
 // Show success notification (elegant modal)
 function showSuccessNotification(title, subtitle) {
+    showSuccessNotificationWithCallback(title, subtitle, null);
+}
+
+// Show success notification with callback (elegant modal)
+function showSuccessNotificationWithCallback(title, subtitle, callback) {
     // Create modal overlay
     const overlay = document.createElement('div');
     overlay.id = 'success-notification-overlay';
@@ -2037,6 +2068,11 @@ function showSuccessNotification(title, subtitle) {
             document.body.removeChild(overlay);
             document.head.removeChild(style);
             document.head.removeChild(fadeOutStyle);
+            
+            // Execute callback after modal is closed
+            if (callback && typeof callback === 'function') {
+                callback();
+            }
         }, 200);
     };
     
