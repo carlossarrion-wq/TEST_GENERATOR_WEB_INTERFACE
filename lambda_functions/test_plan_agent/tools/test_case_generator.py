@@ -7,7 +7,7 @@ import json
 import boto3
 from typing import Dict, Any, List
 
-# System prompt optimizado para Prompt Caching con algoritmos integrados
+# System prompt optimizado para Prompt Caching con ejemplos GENÉRICOS
 TEST_CASE_GENERATOR_SYSTEM_PROMPT = """Eres un experto en testing de software con certificación ISTQB y experiencia en metodologías ágiles.
 
 TU MISIÓN:
@@ -88,81 +88,50 @@ Cada caso DEBE incluir:
 - Resultado esperado: >30 caracteres, específico y medible
 - Datos de prueba: >10 caracteres, valores concretos
 
-FORMATO DE SALIDA:
-Devuelve ÚNICAMENTE JSON válido:
+CLASIFICACIÓN DE PRIORIDADES:
+- High (Alta prioridad): Casos que validan funcionalidades críticas o esenciales para el negocio, cuyo fallo impediría la operación normal del sistema o causaría un impacto grave.
+- Medium (Prioridad media): Casos que validan funcionalidades importantes pero no críticas, o flujos secundarios que pueden tener soluciones alternativas si fallan.
+- Low (Baja prioridad): Casos que validan aspectos complementarios, de usabilidad o escenarios poco frecuentes, cuyo fallo no afecta significativamente al negocio.
+
+FORMATO DE SALIDA - EJEMPLOS GENÉRICOS (USA LOS REQUERIMIENTOS REALES, NO ESTOS PLACEHOLDERS):
+
+Estructura JSON requerida:
 {
   "test_cases": [
     {
-      "name": "nombre descriptivo >20 chars",
-      "description": "objetivo detallado >50 chars",
+      "name": "Validar [Funcionalidad del Requerimiento #X] - [Escenario específico] >20 chars",
+      "description": "Este caso valida el requerimiento #X: [Nombre del requerimiento]. Verifica que [funcionalidad específica] funciona correctamente cuando [condición o escenario]. >50 chars",
       "priority": "High|Medium|Low",
-      "preconditions": "condiciones específicas >10 chars",
-      "expected_result": "resultado medible >30 chars",
-      "test_data": "datos concretos >10 chars",
-      "steps": ["paso 1 detallado", "paso 2 detallado", "paso 3 detallado"]
+      "preconditions": "[Estado inicial del sistema, datos preexistentes, configuraciones necesarias] >10 chars",
+      "expected_result": "El requerimiento #X se cumple: [Resultado específico y medible que confirma el cumplimiento] >30 chars",
+      "test_data": "[Datos concretos: valores, IDs, nombres, cantidades específicas para la prueba] >10 chars",
+      "steps": [
+        "Paso 1: [Acción de preparación o navegación específica relacionada con el requerimiento]",
+        "Paso 2: [Acción principal que ejecuta la funcionalidad del requerimiento]",
+        "Paso 3: [Verificación del resultado esperado del requerimiento]",
+        "Paso 4: [Validación adicional o confirmación de efectos secundarios - opcional]"
+      ]
+    },
+    {
+      "name": "Validar [Funcionalidad del Requerimiento #Y] - Caso negativo con [condición de error]",
+      "description": "Este caso valida el requerimiento #Y: [Nombre del requerimiento]. Verifica que el sistema maneja correctamente [escenario de error o excepción] relacionado con [funcionalidad].",
+      "priority": "High|Medium|Low",
+      "preconditions": "[Condiciones que provocan el escenario de error]",
+      "expected_result": "El requerimiento #Y se cumple: El sistema [maneja el error correctamente, muestra mensaje apropiado, previene acción incorrecta]",
+      "test_data": "[Datos inválidos o que provocan el error: valores fuera de rango, formatos incorrectos, etc.]",
+      "steps": [
+        "Paso 1: [Preparar escenario que provocará el error]",
+        "Paso 2: [Ejecutar acción con datos inválidos o condición de error]",
+        "Paso 3: [Verificar que el sistema responde apropiadamente al error]",
+        "Paso 4: [Confirmar que no hay efectos secundarios negativos]"
+      ]
     }
   ]
 }
 
-Un ejemplo de salida sería el siguiente:
-{
-  "summary": "Plan de pruebas para validar la funcionalidad de inicio de sesión en la aplicación web, cubriendo casos exitosos, fallidos y de validación de campos obligatorios.",
-  "test_cases": [
-    {
-      "name": "Inicio de sesión exitoso con credenciales válidas",
-      "description": "Verifica que un usuario registrado pueda iniciar sesión correctamente cuando introduce credenciales válidas.",
-      "priority": "High",
-      "preconditions": "El usuario debe estar previamente registrado y activo en el sistema.",
-      "expected_result": "El sistema permite el acceso al usuario, mostrando la pantalla de inicio o panel principal.",
-      "test_data": "Usuario: usuario.prueba@example.com, Contraseña: Prueba1234",
-      "steps": [
-        "Abrir la página de inicio de sesión.",
-        "Introducir el correo electrónico y la contraseña válidos.",
-        "Hacer clic en el botón 'Iniciar sesión'.",
-        "Verificar que se redirige a la pantalla de inicio y se muestra el nombre del usuario."
-      ]
-    },
-    {
-      "name": "Error de autenticación con contraseña incorrecta",
-      "description": "Valida que el sistema muestre un mensaje de error cuando se introduce una contraseña incorrecta.",
-      "priority": "High",
-      "preconditions": "El usuario debe existir en la base de datos.",
-      "expected_result": "El sistema muestra un mensaje de error 'Usuario o contraseña incorrectos' sin permitir el acceso.",
-      "test_data": "Usuario: usuario.prueba@example.com, Contraseña: Incorrecta123",
-      "steps": [
-        "Abrir la página de inicio de sesión.",
-        "Introducir el correo electrónico válido y una contraseña incorrecta.",
-        "Hacer clic en el botón 'Iniciar sesión'.",
-        "Verificar que aparece el mensaje de error y que no se concede acceso."
-      ]
-    },
-    {
-      "name": "Validación de campos vacíos en formulario de login",
-      "description": "Comprueba que el sistema no permita iniciar sesión si los campos de usuario o contraseña están vacíos.",
-      "priority": "Medium",
-      "preconditions": "Ninguna.",
-      "expected_result": "El sistema muestra mensajes de validación indicando que ambos campos son obligatorios.",
-      "test_data": "Usuario: '', Contraseña: ''",
-      "steps": [
-        "Abrir la página de inicio de sesión.",
-        "Dejar vacíos los campos de usuario y contraseña.",
-        "Hacer clic en el botón 'Iniciar sesión'.",
-        "Verificar que aparecen los mensajes de validación correspondientes."
-      ]
-    },...
-}
-
-a propiedad "priority" indica la criticidad o impacto del caso de prueba en el funcionamiento del sistema.
-Clasifica cada caso de prueba en uno de los siguientes tres niveles:
-High (Alta prioridad):
-Casos que validan funcionalidades críticas o esenciales para el negocio, cuyo fallo impediría la operación normal del sistema o causaría un impacto grave.
-Ejemplo: Verificar que un usuario puede iniciar sesión correctamente con credenciales válidas.
-Medium (Prioridad media):
-Casos que validan funcionalidades importantes pero no críticas, o flujos secundarios que pueden tener soluciones alternativas si fallan.
-Ejemplo: Verificar que el sistema muestra mensajes de error adecuados cuando se dejan campos vacíos en el formulario.
-Low (Baja prioridad):
-Casos que validan aspectos complementarios, de usabilidad o escenarios poco frecuentes, cuyo fallo no afecta significativamente al negocio.
-Ejemplo: Verificar que la aplicación solicita autenticación de doble factor solo cuando se accede desde un dispositivo desconocido.
+⚠️ IMPORTANTE: Los ejemplos anteriores usan PLACEHOLDERS [X], [Y], [Funcionalidad], etc. 
+TÚ DEBES reemplazarlos con los REQUERIMIENTOS REALES proporcionados por el usuario.
+NO uses estos placeholders en tu respuesta - usa el contenido específico de los requerimientos.
 
 REGLAS DE OPTIMIZACIÓN:
 1. Genera casos que alcancen score ≥ 85 puntos
@@ -171,7 +140,8 @@ REGLAS DE OPTIMIZACIÓN:
 4. Asigna High priority a edge cases identificados
 5. Usa descripciones y resultados detallados (>50 y >30 chars)
 6. Incluye datos de prueba específicos y realistas
-7. Responde SOLO con JSON, sin explicaciones adicionales"""
+7. Responde SOLO con JSON, sin explicaciones adicionales
+8. CRÍTICO: Genera casos basados ÚNICAMENTE en los requerimientos proporcionados por el usuario"""
 
 class TestCaseGeneratorTool:
     """Tool for generating comprehensive test cases"""
@@ -195,11 +165,13 @@ Creates detailed test cases with steps, preconditions, and expected results."""
             edge_cases = input_data.get('edge_cases', [])
             risk_areas = input_data.get('risk_areas', [])
             generation_options = input_data.get('generation_options', {})
-            kb_insights = input_data.get('kb_insights', [])
+            kb_insights = generation_options.get('kb_insights', [])
             
             min_cases = generation_options.get('min_test_cases', 5)
             max_cases = generation_options.get('max_test_cases', 15)
-            target_cases = (min_cases + max_cases) // 2
+            
+            # Limitar target_cases a máximo 12 para evitar problemas de tokens
+            target_cases = min(12, (min_cases + max_cases) // 2)
             
             # Build comprehensive requirements list (ALL requirements, not just 5)
             reqs_list = []
@@ -211,7 +183,7 @@ Creates detailed test cases with steps, preconditions, and expected results."""
                 # Clean up requirement text
                 req_text = req_text.strip().lstrip('-•*').strip()
                 if req_text:
-                    reqs_list.append(f"{i}. {req_text}")
+                    reqs_list.append("{0}. {1}".format(i, req_text))
             
             reqs_summary = "\n".join(reqs_list) if reqs_list else "No specific requirements provided"
             
@@ -226,7 +198,7 @@ Creates detailed test cases with steps, preconditions, and expected results."""
                         edge_text = str(edge)
                     edge_text = edge_text.strip().lstrip('-•*').strip()
                     if edge_text:
-                        edge_list.append(f"{i}. {edge_text}")
+                        edge_list.append("{0}. {1}".format(i, edge_text))
                 if edge_list:
                     edge_cases_summary = "\n\nEDGE CASES IDENTIFICADOS:\n" + "\n".join(edge_list)
             
@@ -241,7 +213,7 @@ Creates detailed test cases with steps, preconditions, and expected results."""
                         risk_text = str(risk)
                     risk_text = risk_text.strip().lstrip('-•*').strip()
                     if risk_text:
-                        risk_list.append(f"{i}. {risk_text}")
+                        risk_list.append("{0}. {1}".format(i, risk_text))
                 if risk_list:
                     risk_areas_summary = "\n\nÁREAS DE RIESGO:\n" + "\n".join(risk_list)
             
@@ -255,12 +227,12 @@ Creates detailed test cases with steps, preconditions, and expected results."""
                     else:
                         insight_text = str(insight)[:150]
                     if insight_text.strip():
-                        kb_list.append(f"• {insight_text.strip()}")
+                        kb_list.append("• {0}".format(insight_text.strip()))
                 if kb_list:
                     kb_summary = "\n\nBUENAS PRÁCTICAS (Knowledge Base):\n" + "\n".join(kb_list)
             
             # Enhanced generation prompt with EXPLICIT requirement mapping
-            generation_prompt = f"""Genera EXACTAMENTE {target_cases} casos de prueba que VALIDEN DIRECTAMENTE los requerimientos funcionales especificados.
+            generation_prompt = """Genera EXACTAMENTE {target_cases} casos de prueba que VALIDEN DIRECTAMENTE los requerimientos funcionales especificados.
 
 ⚠️ REGLA CRÍTICA: CADA caso de prueba DEBE validar UNO O MÁS requerimientos funcionales específicos de la lista.
 
@@ -277,7 +249,7 @@ INSTRUCCIONES OBLIGATORIAS:
 
 2. COBERTURA COMPLETA:
    - Asegúrate de cubrir TODOS los requerimientos funcionales listados
-   - Si hay {len(reqs_list)} requerimientos, genera casos que los cubran todos
+   - Si hay {num_reqs} requerimientos, genera casos que los cubran todos
    - Puedes crear múltiples casos para requerimientos complejos
    - Prioriza los requerimientos más críticos con casos High priority
 
@@ -303,55 +275,27 @@ INSTRUCCIONES OBLIGATORIAS:
    - Resultados esperados >30 caracteres, específicos y medibles
    - Datos de prueba concretos y realistas para ese requerimiento
 
-FORMATO DE SALIDA (JSON válido):
-{{
-  "test_cases": [
-    {{
-      "name": "Validar [Requerimiento específico] - [Escenario] >20 chars",
-      "description": "Este caso valida el requerimiento #X: [nombre]. [Explicación detallada] >50 chars",
-      "priority": "High|Medium|Low",
-      "preconditions": "Condiciones específicas para validar este requerimiento",
-      "expected_result": "El requerimiento #X se cumple: [resultado específico y medible] >30 chars",
-      "test_data": "Datos específicos para validar este requerimiento",
-      "steps": [
-        "Paso 1: Preparar el escenario para validar el requerimiento #X",
-        "Paso 2: Ejecutar la acción que valida el requerimiento",
-        "Paso 3: Verificar que el resultado cumple con el requerimiento #X",
-        "Paso 4: Confirmar que no hay efectos secundarios (opcional)"
-      ]
-    }}
-  ]
-}}
+⚠️ RECUERDA: 
+- Usa los REQUERIMIENTOS REALES listados arriba, NO los placeholders del ejemplo
+- Cada caso DEBE referenciar explícitamente qué requerimiento(s) está validando
+- Los ejemplos en el system prompt son solo para mostrar la ESTRUCTURA, no el contenido
 
-EJEMPLO DE CASO CORRECTO:
-Si el requerimiento #1 es "El sistema debe permitir login con email y contraseña", un caso válido sería:
-{{
-  "name": "Validar login exitoso con credenciales válidas (Req #1)",
-  "description": "Este caso valida el requerimiento #1: El sistema debe permitir login con email y contraseña. Se verifica que un usuario registrado puede autenticarse correctamente.",
-  "priority": "High",
-  "preconditions": "Usuario registrado en el sistema con email: test@example.com",
-  "expected_result": "El requerimiento #1 se cumple: El usuario accede exitosamente al sistema y se muestra el dashboard principal.",
-  "test_data": "Email: test@example.com, Contraseña: Test123!",
-  "steps": [
-    "Abrir la página de login del sistema",
-    "Introducir email válido: test@example.com",
-    "Introducir contraseña válida: Test123!",
-    "Hacer clic en el botón 'Iniciar sesión'",
-    "Verificar que se redirige al dashboard y se muestra el nombre del usuario"
-  ]
-}}
-
-⚠️ RECUERDA: Cada caso DEBE referenciar explícitamente qué requerimiento(s) está validando.
-
-Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
+Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales.""".format(
+                target_cases=target_cases,
+                reqs_summary=reqs_summary,
+                edge_cases_summary=edge_cases_summary,
+                risk_areas_summary=risk_areas_summary,
+                kb_summary=kb_summary,
+                num_reqs=len(reqs_list)
+            )
             
             # Usar Prompt Caching con la versión correcta de API
             response = self.bedrock_client.invoke_model(
                 modelId=self.model_id,
                 body=json.dumps({
                     "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": 4000,  # Increased for more detailed cases
-                    "temperature": 0.3,  # Slightly higher for more variety
+                    "max_tokens": 4000,
+                    "temperature": 0.3,
                     "system": [
                         {
                             "type": "text",
@@ -369,16 +313,21 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
             response_body = json.loads(response['body'].read())
             content = response_body['content'][0]['text']
             
-            print(f"🔍 DEBUG: Received content length: {len(content)} characters")
-            print(f"🔍 DEBUG: Content preview: {content[:500]}...")
+            print("🔍 DEBUG: Received content length: {0} characters".format(len(content)))
+            print("🔍 DEBUG: Content preview: {0}...".format(content[:500]))
             
             # Parse JSON
             result = self._extract_json(content)
             
             # Ensure we have test cases
             if not result.get('test_cases'):
-                print("⚠️ No test cases generated, creating fallback")
-                result['test_cases'] = self._create_fallback_cases(functional_reqs, target_cases)
+                print("⚠️ No test cases generated")
+                return {
+                    "error": "No se pudieron generar casos de prueba. Por favor, intenta con menos casos o requerimientos más específicos.",
+                    "generation_completed": False,
+                    "test_cases": [],
+                    "total_generated": 0
+                }
             else:
                 # Validate uniqueness and quality
                 result['test_cases'] = self._validate_and_deduplicate_cases(
@@ -389,24 +338,20 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
             result['generation_completed'] = True
             result['total_generated'] = len(result.get('test_cases', []))
             
-            print(f"✅ Generated {result['total_generated']} unique test cases")
+            print("✅ Generated {0} unique test cases".format(result['total_generated']))
             
             return result
             
         except Exception as e:
-            print(f"❌ Test case generation error: {str(e)}")
+            print("❌ Test case generation error: {0}".format(str(e)))
             import traceback
             traceback.print_exc()
             
-            # Return fallback cases instead of empty
             return {
                 "error": str(e),
                 "generation_completed": False,
-                "test_cases": self._create_fallback_cases(
-                    input_data.get('functional_requirements', []),
-                    generation_options.get('min_test_cases', 5)
-                ),
-                "total_generated": generation_options.get('min_test_cases', 5)
+                "test_cases": [],
+                "total_generated": 0
             }
     
     def _validate_and_deduplicate_cases(self, test_cases: List[Dict[str, Any]], target_count: int) -> List[Dict[str, Any]]:
@@ -424,18 +369,18 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
             
             # Skip if name or description is too similar to existing cases
             if name in seen_names or description in seen_descriptions:
-                print(f"⚠️ Skipping duplicate case: {case.get('name', 'Unknown')}")
+                print("⚠️ Skipping duplicate case: {0}".format(case.get('name', 'Unknown')))
                 continue
             
             # Validate case has minimum required fields
             if not name or not description:
-                print(f"⚠️ Skipping invalid case (missing name or description)")
+                print("⚠️ Skipping invalid case (missing name or description)")
                 continue
             
             # Ensure steps exist and have at least 3 steps
             steps = case.get('steps', [])
             if not steps or len(steps) < 3:
-                print(f"⚠️ Case has insufficient steps, adding default steps: {case.get('name', 'Unknown')}")
+                print("⚠️ Case has insufficient steps, adding default steps: {0}".format(case.get('name', 'Unknown')))
                 case['steps'] = steps + [
                     "Execute the test action",
                     "Verify the expected behavior",
@@ -444,13 +389,13 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
             
             # Ensure all required fields have minimum length
             if len(case.get('name', '')) < 20:
-                case['name'] = f"{case['name']} - Validation Test"
+                case['name'] = "{0} - Validation Test".format(case['name'])
             
             if len(case.get('description', '')) < 50:
-                case['description'] = f"{case['description']} This test validates the functionality and ensures it meets the specified requirements."
+                case['description'] = "{0} This test validates the functionality and ensures it meets the specified requirements.".format(case['description'])
             
             if len(case.get('expected_result', '')) < 30:
-                case['expected_result'] = f"{case.get('expected_result', 'Expected result')} and the system behaves as specified."
+                case['expected_result'] = "{0} and the system behaves as specified.".format(case.get('expected_result', 'Expected result'))
             
             seen_names.add(name)
             seen_descriptions.add(description)
@@ -460,62 +405,8 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
             if len(unique_cases) >= target_count:
                 break
         
-        print(f"✅ Validated {len(unique_cases)} unique cases from {len(test_cases)} generated")
+        print("✅ Validated {0} unique cases from {1} generated".format(len(unique_cases), len(test_cases)))
         return unique_cases
-    
-    def _create_fallback_cases(self, functional_reqs: List, count: int) -> List[Dict[str, Any]]:
-        """Create specific fallback test cases based on requirements"""
-        cases = []
-        
-        # Parse requirements to create specific test cases
-        for i in range(min(count, max(len(functional_reqs), count))):
-            if i < len(functional_reqs):
-                req = functional_reqs[i]
-                
-                # Handle both dict and string formats
-                if isinstance(req, dict):
-                    req_text = req.get('requirement', str(req))
-                else:
-                    req_text = str(req)
-                
-                # Clean up requirement text
-                req_text = req_text.strip().lstrip('-•*').strip()
-                
-                # Create specific test case based on requirement
-                priority = "High" if i < count * 0.35 else ("Medium" if i < count * 0.75 else "Low")
-                
-                cases.append({
-                    "name": f"Verificar funcionalidad: {req_text[:60]}",
-                    "description": f"Este caso de prueba valida que {req_text.lower()} funciona correctamente según los requerimientos especificados.",
-                    "priority": priority,
-                    "preconditions": "El sistema debe estar accesible y el usuario debe tener los permisos necesarios para ejecutar la prueba.",
-                    "expected_result": f"La funcionalidad {req_text[:40]} se ejecuta correctamente sin errores y cumple con los criterios de aceptación.",
-                    "test_data": f"Datos de prueba válidos para {req_text[:30]}",
-                    "steps": [
-                        f"Acceder a la funcionalidad relacionada con: {req_text[:50]}",
-                        "Ejecutar la acción de prueba con datos válidos",
-                        "Verificar que el resultado coincide con lo esperado",
-                        "Confirmar que no se generan errores en el proceso"
-                    ]
-                })
-            else:
-                # Generic case if we need more than requirements
-                cases.append({
-                    "name": f"Caso de prueba adicional {i+1} - Validación general del sistema",
-                    "description": f"Este caso de prueba valida aspectos generales del sistema para asegurar su correcto funcionamiento y estabilidad.",
-                    "priority": "Low",
-                    "preconditions": "El sistema debe estar operativo y accesible para realizar las pruebas.",
-                    "expected_result": "El sistema responde correctamente a las acciones de prueba y mantiene su estabilidad durante la ejecución.",
-                    "test_data": "Conjunto de datos de prueba estándar",
-                    "steps": [
-                        "Acceder al sistema de pruebas",
-                        "Ejecutar las validaciones necesarias",
-                        "Verificar los resultados obtenidos",
-                        "Confirmar que el sistema mantiene su integridad"
-                    ]
-                })
-        
-        return cases
     
     def _extract_json(self, content: str) -> Dict[str, Any]:
         """Extract JSON from response - IMPROVED"""
@@ -534,8 +425,8 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
                 json_str = json_match.group(1).strip()
                 return json.loads(json_str)
             except json.JSONDecodeError as e:
-                print(f"⚠️ JSON parse error in code block: {str(e)}")
-                print(f"   Content preview: {json_str[:300]}...")
+                print("⚠️ JSON parse error in code block: {0}".format(str(e)))
+                print("   Content preview: {0}...".format(json_str[:300]))
         
         # Try to find any JSON object (greedy match to get complete JSON)
         json_match = re.search(r'\{[\s\S]*\}', content, re.DOTALL)
@@ -544,11 +435,11 @@ Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
                 json_str = json_match.group(0)
                 return json.loads(json_str)
             except json.JSONDecodeError as e:
-                print(f"⚠️ JSON parse error in object: {str(e)}")
-                print(f"   Content preview: {json_str[:300]}...")
+                print("⚠️ JSON parse error in object: {0}".format(str(e)))
+                print("   Content preview: {0}...".format(json_str[:300]))
         
-        print(f"⚠️ Could not parse JSON from content")
-        print(f"   Content preview: {content[:500]}...")
+        print("⚠️ Could not parse JSON from content")
+        print("   Content preview: {0}...".format(content[:500]))
         return {
             "test_cases": [],
             "recommendations": []
