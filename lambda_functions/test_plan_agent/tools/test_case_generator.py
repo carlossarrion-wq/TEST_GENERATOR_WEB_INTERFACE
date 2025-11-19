@@ -259,40 +259,89 @@ Creates detailed test cases with steps, preconditions, and expected results."""
                 if kb_list:
                     kb_summary = "\n\nBUENAS PRÁCTICAS (Knowledge Base):\n" + "\n".join(kb_list)
             
-            # Enhanced generation prompt with full context
-            generation_prompt = f"""Genera EXACTAMENTE {target_cases} casos de prueba ÚNICOS Y ESPECÍFICOS para el siguiente proyecto.
+            # Enhanced generation prompt with EXPLICIT requirement mapping
+            generation_prompt = f"""Genera EXACTAMENTE {target_cases} casos de prueba que VALIDEN DIRECTAMENTE los requerimientos funcionales especificados.
 
-IMPORTANTE: Cada caso debe ser DIFERENTE y cubrir un aspecto ESPECÍFICO de los requerimientos. NO repitas casos similares.
+⚠️ REGLA CRÍTICA: CADA caso de prueba DEBE validar UNO O MÁS requerimientos funcionales específicos de la lista.
 
-REQUERIMIENTOS FUNCIONALES:
+REQUERIMIENTOS FUNCIONALES A VALIDAR:
 {reqs_summary}{edge_cases_summary}{risk_areas_summary}{kb_summary}
 
-INSTRUCCIONES ESPECÍFICAS:
-1. Genera {target_cases} casos de prueba DISTINTOS
-2. Cada caso debe cubrir un requerimiento o escenario DIFERENTE
-3. Incluye casos positivos, negativos y edge cases
-4. Distribuye prioridades: ~35% High, ~40% Medium, ~25% Low
-5. Asigna High priority a edge cases y funcionalidades críticas
-6. Cada caso DEBE tener mínimo 3 pasos detallados
-7. Usa nombres descriptivos >20 caracteres
-8. Descripciones >50 caracteres explicando el objetivo
-9. Resultados esperados >30 caracteres, específicos y medibles
-10. Datos de prueba concretos y realistas
+INSTRUCCIONES OBLIGATORIAS:
+
+1. MAPEO DIRECTO A REQUERIMIENTOS:
+   - CADA caso de prueba DEBE validar al menos UN requerimiento funcional específico
+   - En la descripción, INDICA EXPLÍCITAMENTE qué requerimiento(s) estás validando
+   - Ejemplo: "Este caso valida el requerimiento #1: [nombre del requerimiento]"
+   - NO generes casos genéricos que no validen requerimientos específicos
+
+2. COBERTURA COMPLETA:
+   - Asegúrate de cubrir TODOS los requerimientos funcionales listados
+   - Si hay {len(reqs_list)} requerimientos, genera casos que los cubran todos
+   - Puedes crear múltiples casos para requerimientos complejos
+   - Prioriza los requerimientos más críticos con casos High priority
+
+3. VALIDACIÓN ESPECÍFICA:
+   - Los pasos de prueba deben validar EXACTAMENTE la funcionalidad descrita en el requerimiento
+   - El resultado esperado debe confirmar que el requerimiento se cumple
+   - Los datos de prueba deben ser específicos para validar ese requerimiento
+
+4. TIPOS DE CASOS POR REQUERIMIENTO:
+   - Caso positivo: Valida que el requerimiento funciona correctamente
+   - Caso negativo: Valida manejo de errores relacionado al requerimiento
+   - Edge case: Valida límites y casos extremos del requerimiento
+
+5. DISTRIBUCIÓN DE PRIORIDADES:
+   - High (35%): Requerimientos críticos, edge cases identificados, áreas de riesgo
+   - Medium (40%): Requerimientos importantes, validaciones secundarias
+   - Low (25%): Requerimientos complementarios, casos de usabilidad
+
+6. CALIDAD DE CASOS:
+   - Cada caso DEBE tener mínimo 3 pasos detallados y ejecutables
+   - Nombres descriptivos >20 caracteres que mencionen el requerimiento
+   - Descripciones >50 caracteres que expliquen QUÉ requerimiento validan
+   - Resultados esperados >30 caracteres, específicos y medibles
+   - Datos de prueba concretos y realistas para ese requerimiento
 
 FORMATO DE SALIDA (JSON válido):
 {{
   "test_cases": [
     {{
-      "name": "Nombre descriptivo único del caso >20 chars",
-      "description": "Descripción detallada del objetivo >50 chars",
+      "name": "Validar [Requerimiento específico] - [Escenario] >20 chars",
+      "description": "Este caso valida el requerimiento #X: [nombre]. [Explicación detallada] >50 chars",
       "priority": "High|Medium|Low",
-      "preconditions": "Condiciones específicas necesarias",
-      "expected_result": "Resultado esperado específico y medible >30 chars",
-      "test_data": "Datos de prueba concretos",
-      "steps": ["Paso 1 detallado", "Paso 2 detallado", "Paso 3 detallado", "..."]
+      "preconditions": "Condiciones específicas para validar este requerimiento",
+      "expected_result": "El requerimiento #X se cumple: [resultado específico y medible] >30 chars",
+      "test_data": "Datos específicos para validar este requerimiento",
+      "steps": [
+        "Paso 1: Preparar el escenario para validar el requerimiento #X",
+        "Paso 2: Ejecutar la acción que valida el requerimiento",
+        "Paso 3: Verificar que el resultado cumple con el requerimiento #X",
+        "Paso 4: Confirmar que no hay efectos secundarios (opcional)"
+      ]
     }}
   ]
 }}
+
+EJEMPLO DE CASO CORRECTO:
+Si el requerimiento #1 es "El sistema debe permitir login con email y contraseña", un caso válido sería:
+{{
+  "name": "Validar login exitoso con credenciales válidas (Req #1)",
+  "description": "Este caso valida el requerimiento #1: El sistema debe permitir login con email y contraseña. Se verifica que un usuario registrado puede autenticarse correctamente.",
+  "priority": "High",
+  "preconditions": "Usuario registrado en el sistema con email: test@example.com",
+  "expected_result": "El requerimiento #1 se cumple: El usuario accede exitosamente al sistema y se muestra el dashboard principal.",
+  "test_data": "Email: test@example.com, Contraseña: Test123!",
+  "steps": [
+    "Abrir la página de login del sistema",
+    "Introducir email válido: test@example.com",
+    "Introducir contraseña válida: Test123!",
+    "Hacer clic en el botón 'Iniciar sesión'",
+    "Verificar que se redirige al dashboard y se muestra el nombre del usuario"
+  ]
+}}
+
+⚠️ RECUERDA: Cada caso DEBE referenciar explícitamente qué requerimiento(s) está validando.
 
 Responde ÚNICAMENTE con el JSON, sin explicaciones adicionales."""
             
