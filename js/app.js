@@ -1031,16 +1031,19 @@ function editTestCase(testCaseId) {
     
     modalTitle.textContent = `Editar ${testCase.id}`;
     
-    // Build steps HTML for editing
+    // Build steps HTML for editing with drag-and-drop support
     let stepsHTML = '';
     if (testCase.steps && testCase.steps.length > 0) {
         testCase.steps.forEach((step, index) => {
             const stepText = typeof step === 'object' ? step.description : step;
             stepsHTML += `
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                    <span style="min-width: 30px; color: #718096; font-weight: 500;">${index + 1}.</span>
+                <div class="draggable-step" draggable="true" data-step-index="${index}" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; cursor: move; padding: 0.5rem; border-radius: 6px; transition: all 0.2s;">
+                    <svg class="drag-handle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px; color: #a0aec0; flex-shrink: 0; cursor: grab;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+                    </svg>
+                    <span class="step-number" style="min-width: 30px; color: #718096; font-weight: 500;">${index + 1}.</span>
                     <input type="text" class="form-control edit-step-input" data-step-index="${index}" value="${stepText}" style="flex: 1;">
-                    <button class="btn-icon btn-icon-delete" onclick="removeStep(${index})" title="Remove step" style="flex-shrink: 0;">
+                    <button class="btn-icon btn-icon-delete" onclick="removeStep(${index})" title="Eliminar paso" style="flex-shrink: 0;">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -1105,17 +1108,156 @@ function editTestCase(testCaseId) {
     `;
     
     modal.classList.add('show');
+    
+    // Initialize drag-and-drop after modal is shown
+    setTimeout(() => {
+        initializeDragAndDrop();
+    }, 100);
+}
+
+// Initialize drag-and-drop functionality for test steps
+let draggedElement = null;
+let draggedIndex = null;
+
+function initializeDragAndDrop() {
+    const container = document.getElementById('edit-steps-container');
+    if (!container) return;
+    
+    const draggableSteps = container.querySelectorAll('.draggable-step');
+    
+    draggableSteps.forEach(step => {
+        // Drag start
+        step.addEventListener('dragstart', function(e) {
+            draggedElement = this;
+            draggedIndex = parseInt(this.dataset.stepIndex);
+            this.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        });
+        
+        // Drag end
+        step.addEventListener('dragend', function(e) {
+            this.style.opacity = '1';
+            this.style.background = '';
+            
+            // Remove all drag-over styles
+            const allSteps = container.querySelectorAll('.draggable-step');
+            allSteps.forEach(s => {
+                s.style.background = '';
+                s.style.borderTop = '';
+                s.style.borderBottom = '';
+            });
+        });
+        
+        // Drag over
+        step.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (this === draggedElement) return;
+            
+            // Visual feedback - highlight drop zone
+            this.style.background = '#f7fafc';
+            
+            // Show drop indicator line
+            const rect = this.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+            
+            if (e.clientY < midpoint) {
+                this.style.borderTop = '2px solid #319795';
+                this.style.borderBottom = '';
+            } else {
+                this.style.borderTop = '';
+                this.style.borderBottom = '2px solid #319795';
+            }
+        });
+        
+        // Drag enter
+        step.addEventListener('dragenter', function(e) {
+            e.preventDefault();
+        });
+        
+        // Drag leave
+        step.addEventListener('dragleave', function(e) {
+            this.style.background = '';
+            this.style.borderTop = '';
+            this.style.borderBottom = '';
+        });
+        
+        // Drop
+        step.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (this === draggedElement) return;
+            
+            const dropIndex = parseInt(this.dataset.stepIndex);
+            
+            // Determine if we're dropping above or below
+            const rect = this.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+            const dropAbove = e.clientY < midpoint;
+            
+            // Reorder the DOM elements
+            if (dropAbove) {
+                container.insertBefore(draggedElement, this);
+            } else {
+                container.insertBefore(draggedElement, this.nextSibling);
+            }
+            
+            // Renumber all steps after reordering
+            renumberSteps();
+            
+            // Clear visual feedback
+            this.style.background = '';
+            this.style.borderTop = '';
+            this.style.borderBottom = '';
+        });
+    });
+}
+
+// Renumber all steps after drag-and-drop reordering
+function renumberSteps() {
+    const container = document.getElementById('edit-steps-container');
+    if (!container) return;
+    
+    const allSteps = container.querySelectorAll('.draggable-step');
+    allSteps.forEach((step, index) => {
+        // Update data attribute
+        step.dataset.stepIndex = index;
+        
+        // Update visible number
+        const numberSpan = step.querySelector('.step-number');
+        if (numberSpan) {
+            numberSpan.textContent = `${index + 1}.`;
+        }
+        
+        // Update input data attribute
+        const input = step.querySelector('.edit-step-input');
+        if (input) {
+            input.dataset.stepIndex = index;
+        }
+        
+        // Update remove button onclick
+        const removeBtn = step.querySelector('.btn-icon-delete');
+        if (removeBtn) {
+            removeBtn.setAttribute('onclick', `removeStep(${index})`);
+        }
+    });
 }
 
 // Add new step to test case being edited
 function addNewStep() {
     const container = document.getElementById('edit-steps-container');
-    const currentSteps = container.querySelectorAll('.edit-step-input');
+    const currentSteps = container.querySelectorAll('.draggable-step');
     const newIndex = currentSteps.length;
     
-            const newStepHTML = `
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-            <span style="min-width: 30px; color: #718096; font-weight: 500;">${newIndex + 1}.</span>
+    const newStepHTML = `
+        <div class="draggable-step" draggable="true" data-step-index="${newIndex}" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; cursor: move; padding: 0.5rem; border-radius: 6px; transition: all 0.2s;">
+            <svg class="drag-handle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px; color: #a0aec0; flex-shrink: 0; cursor: grab;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+            </svg>
+            <span class="step-number" style="min-width: 30px; color: #718096; font-weight: 500;">${newIndex + 1}.</span>
             <input type="text" class="form-control edit-step-input" data-step-index="${newIndex}" value="" placeholder="Introduce la descripción del paso..." style="flex: 1;">
             <button class="btn-icon btn-icon-delete" onclick="removeStep(${newIndex})" title="Eliminar paso" style="flex-shrink: 0;">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
@@ -1132,12 +1274,15 @@ function addNewStep() {
     }
     
     container.insertAdjacentHTML('beforeend', newStepHTML);
+    
+    // Reinitialize drag-and-drop for the new step
+    initializeDragAndDrop();
 }
 
 // Remove step from test case being edited
 function removeStep(stepIndex) {
     const container = document.getElementById('edit-steps-container');
-    const allSteps = container.querySelectorAll('.edit-step-input');
+    const allSteps = container.querySelectorAll('.draggable-step');
     
     if (allSteps.length <= 1) {
         alert('Un caso de prueba debe tener al menos un paso');
@@ -1145,22 +1290,12 @@ function removeStep(stepIndex) {
     }
     
     // Remove the step
-    allSteps[stepIndex].closest('div').remove();
+    if (allSteps[stepIndex]) {
+        allSteps[stepIndex].remove();
+    }
     
     // Renumber remaining steps
-    const remainingSteps = container.querySelectorAll('.edit-step-input');
-    remainingSteps.forEach((input, index) => {
-        input.dataset.stepIndex = index;
-        const numberSpan = input.previousElementSibling;
-        if (numberSpan) {
-            numberSpan.textContent = `${index + 1}.`;
-        }
-        // Update remove button onclick
-        const removeBtn = input.nextElementSibling;
-        if (removeBtn) {
-            removeBtn.setAttribute('onclick', `removeStep(${index})`);
-        }
-    });
+    renumberSteps();
 }
 
 // Save test case edits
