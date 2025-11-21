@@ -472,6 +472,30 @@ async function generateTestPlan(event) {
         // Update button text to "Generar nuevo plan" after first generation
         updateGenerateButtonState();
         
+        // Reset Save Plan button state after successful generation
+        const saveButton = document.getElementById('save-plan-btn');
+        const saveIcon = document.getElementById('save-plan-icon');
+        const saveText = document.getElementById('save-plan-text');
+        const saveDescription = document.getElementById('save-plan-description');
+        
+        if (saveButton && saveIcon && saveText && saveDescription) {
+            // Re-enable the button
+            saveButton.disabled = false;
+            saveButton.style.opacity = '1';
+            saveButton.style.cursor = 'pointer';
+            
+            // Reset button text
+            saveText.textContent = 'Guardar Plan';
+            
+            // Reset description text
+            saveDescription.textContent = 'Guardar en el navegador';
+            
+            // Reset icon to original save icon
+            saveIcon.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+            `;
+        }
+        
     } catch (error) {
         console.error("Error generating test plan:", error);
         
@@ -572,14 +596,7 @@ function displayTestCases() {
     if (!emptyStateContainer) {
         emptyStateContainer = document.createElement('div');
         emptyStateContainer.id = 'empty-state-message';
-        emptyStateContainer.style.cssText = `
-            text-align: center;
-            padding: 2rem;
-            color: #718096;
-            background: #f7fafc;
-            border-radius: 8px;
-            margin-top: 1rem;
-        `;
+        emptyStateContainer.className = 'test-cases-empty-state';
         
         // Insert after the table container
         const tableContainer = document.querySelector('.test-cases-table-container');
@@ -598,21 +615,33 @@ function displayTestCases() {
         // Show empty state message
         emptyStateContainer.style.display = 'block';
         emptyStateContainer.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 48px; height: 48px; margin: 0 auto 1rem; color: #a0aec0;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
             </svg>
-            <h4 style="margin: 0 0 0.5rem 0; color: #2d3748; font-size: 1.125rem;">No hay casos de prueba generados</h4>
-            <p style="margin: 0; font-size: 0.875rem; line-height: 1.5;">
+            <h4>No hay casos de prueba generados</h4>
+            <p>
                 Para generar un nuevo plan de casos de prueba, dirígete a la sección 
-                <strong>"Configurar Plan de Pruebas"</strong>.
+                <strong>Configurar Plan de Pruebas</strong>.
             </p>
         `;
+        
+        // Show chat empty state overlay
+        showChatEmptyState();
+        
+        // Show actions empty state overlay
+        showActionsEmptyState();
         
         return;
     }
     
     // Hide empty state message when there are test cases
     emptyStateContainer.style.display = 'none';
+    
+    // Hide chat empty state overlay
+    hideChatEmptyState();
+    
+    // Hide actions empty state overlay
+    hideActionsEmptyState();
     
     // Show/hide delete all button based on number of test cases
     if (deleteAllBtn) {
@@ -889,7 +918,35 @@ function saveTestPlan() {
     savedPlans.push(currentTestPlan);
     localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
     
-    alert('¡Plan de pruebas guardado exitosamente!');
+    // Show success notification
+    showSuccessNotification(
+        'Plan de pruebas guardado',
+        '¡El plan se ha guardado exitosamente!'
+    );
+    
+    // Update button state after successful save
+    const saveButton = document.getElementById('save-plan-btn');
+    const saveIcon = document.getElementById('save-plan-icon');
+    const saveText = document.getElementById('save-plan-text');
+    const saveDescription = document.getElementById('save-plan-description');
+    
+    if (saveButton && saveIcon && saveText && saveDescription) {
+        // Disable the button
+        saveButton.disabled = true;
+        saveButton.style.opacity = '0.7';
+        saveButton.style.cursor = 'not-allowed';
+        
+        // Change button text
+        saveText.textContent = 'Plan Guardado';
+        
+        // Change description text
+        saveDescription.textContent = 'Guardado correctamente';
+        
+        // Replace icon with checkmark
+        saveIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        `;
+    }
 }
 
 // Export to CSV
@@ -899,14 +956,30 @@ function exportToCSV() {
         return;
     }
     
-    let csv = 'ID,Name,Description,Priority,Preconditions,Expected Result,Test Data,Steps\n';
+    // Add UTF-8 BOM for Excel compatibility with special characters
+    let csv = '\uFEFF';
+    
+    // Use semicolon as delimiter for better Excel compatibility (especially in European locales)
+    // Add explicit separator hint for Excel
+    csv += 'sep=;\n';
+    csv += 'ID;Name;Description;Priority;Preconditions;Expected Result;Test Data;Steps\n';
     
     testCases.forEach(tc => {
-        const steps = tc.steps.map(s => `Step ${s.number}: ${s.description}`).join('; ');
-        csv += `"${tc.id}","${tc.name}","${tc.description}","${tc.priority}","${tc.preconditions}","${tc.expectedResult}","${tc.testData}","${steps}"\n`;
+        const steps = tc.steps.map(s => `Step ${s.number}: ${s.description}`).join(' | ');
+        
+        // Escape double quotes by doubling them, and wrap all fields in quotes
+        const escapeField = (field) => {
+            if (field === null || field === undefined) return '""';
+            const str = String(field);
+            // Replace double quotes with two double quotes for CSV escaping
+            const escaped = str.replace(/"/g, '""');
+            return `"${escaped}"`;
+        };
+        
+        csv += `${escapeField(tc.id)};${escapeField(tc.name)};${escapeField(tc.description)};${escapeField(tc.priority)};${escapeField(tc.preconditions)};${escapeField(tc.expectedResult)};${escapeField(tc.testData)};${escapeField(steps)}\n`;
     });
     
-    downloadFile(csv, `test-plan-${currentTestPlan.title.replace(/\s+/g, '-')}.csv`, 'text/csv');
+    downloadFile(csv, `test-plan-${currentTestPlan.title.replace(/\s+/g, '-')}.csv`, 'text/csv;charset=utf-8;');
 }
 
 // Export to JSON
@@ -933,7 +1006,7 @@ function exportToGherkin() {
     gherkin += `    And the user has valid credentials\n\n`;
     
     testCases.forEach(tc => {
-        gherkin += `  Scenario: ${tc.name}\n`;
+        gherkin += `  Scenario: ${tc.id}: ${tc.name}\n`;
         gherkin += `    # Priority: ${tc.priority}\n`;
         gherkin += `    # ${tc.description}\n`;
         
@@ -1535,6 +1608,9 @@ async function openJiraImportModal() {
         `;
     }
 }
+
+// Make openJiraImportModal globally accessible
+window.openJiraImportModal = openJiraImportModal;
 
 // Generate comprehensive mock Jira issues
 function generateMockJiraIssues() {
@@ -3358,4 +3434,133 @@ function showLoadingOverlay() {
 function hideLoadingOverlay() {
     const overlay = document.getElementById('loading-overlay');
     overlay.style.display = 'none';
+}
+
+// Show chat empty state overlay
+function showChatEmptyState() {
+    let chatEmptyOverlay = document.getElementById('chat-empty-state-overlay');
+    
+    if (!chatEmptyOverlay) {
+        // Create empty state overlay
+        chatEmptyOverlay = document.createElement('div');
+        chatEmptyOverlay.id = 'chat-empty-state-overlay';
+        chatEmptyOverlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 12px;
+        `;
+        
+        chatEmptyOverlay.innerHTML = `
+            <div style="text-align: center; padding: 2rem; max-width: 500px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 64px; height: 64px; margin: 0 auto 1.5rem; color: #a0aec0;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+                <h4 style="margin: 0 0 0.75rem 0; color: #2d3748; font-size: 1.25rem; font-weight: 600;">No hay casos de prueba generados</h4>
+                <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #4a5568;">
+                    Para generar un nuevo plan de casos de prueba, dirígete a la sección 
+                    <strong>"Configurar Plan de Pruebas"</strong>.
+                </p>
+            </div>
+        `;
+        
+        // Insert overlay into chat container
+        const chatContainer = document.getElementById('chat-container');
+        if (chatContainer) {
+            // Make chat container position relative if not already
+            if (window.getComputedStyle(chatContainer).position === 'static') {
+                chatContainer.style.position = 'relative';
+            }
+            chatContainer.appendChild(chatEmptyOverlay);
+        }
+    } else {
+        chatEmptyOverlay.style.display = 'flex';
+    }
+}
+
+// Hide chat empty state overlay
+function hideChatEmptyState() {
+    const chatEmptyOverlay = document.getElementById('chat-empty-state-overlay');
+    if (chatEmptyOverlay) {
+        chatEmptyOverlay.style.display = 'none';
+    }
+}
+
+// Show actions empty state overlay
+function showActionsEmptyState() {
+    let actionsEmptyOverlay = document.getElementById('actions-empty-state-overlay');
+    
+    if (!actionsEmptyOverlay) {
+        // Create empty state overlay
+        actionsEmptyOverlay = document.createElement('div');
+        actionsEmptyOverlay.id = 'actions-empty-state-overlay';
+        actionsEmptyOverlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 12px;
+        `;
+        
+        actionsEmptyOverlay.innerHTML = `
+            <div style="text-align: center; padding: 2rem; max-width: 500px;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 64px; height: 64px; margin: 0 auto 1.5rem; color: #a0aec0;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+                <h4 style="margin: 0 0 0.75rem 0; color: #2d3748; font-size: 1.25rem; font-weight: 600;">No hay casos de prueba generados</h4>
+                <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #4a5568;">
+                    Para generar un nuevo plan de casos de prueba, dirígete a la sección 
+                    <strong>"Configurar Plan de Pruebas"</strong>.
+                </p>
+            </div>
+        `;
+        
+        // Insert overlay into actions-grid (not the entire section)
+        const actionsGrid = document.querySelector('#actions-section .actions-grid');
+        if (actionsGrid) {
+            // Make actions-grid position relative if not already
+            if (window.getComputedStyle(actionsGrid).position === 'static') {
+                actionsGrid.style.position = 'relative';
+            }
+            // Set minimum height to accommodate the overlay content
+            actionsGrid.style.minHeight = '300px';
+            actionsGrid.appendChild(actionsEmptyOverlay);
+        }
+    } else {
+        actionsEmptyOverlay.style.display = 'flex';
+        // Ensure minimum height is set when showing overlay again
+        const actionsGrid = document.querySelector('#actions-section .actions-grid');
+        if (actionsGrid) {
+            actionsGrid.style.minHeight = '300px';
+        }
+    }
+}
+
+// Hide actions empty state overlay
+function hideActionsEmptyState() {
+    const actionsEmptyOverlay = document.getElementById('actions-empty-state-overlay');
+    if (actionsEmptyOverlay) {
+        actionsEmptyOverlay.style.display = 'none';
+    }
+    // Remove minimum height when hiding overlay
+    const actionsGrid = document.querySelector('#actions-section .actions-grid');
+    if (actionsGrid) {
+        actionsGrid.style.minHeight = '';
+    }
 }
