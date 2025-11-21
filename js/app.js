@@ -13,12 +13,35 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initializeApp();
     
+    // Populate user info buttons
+    populateUserInfoButtons();
+    
     // Monitor for team changes to refresh Jira filters
     monitorTeamChanges();
     
     // Add page refresh/close protection
     setupPageRefreshProtection();
 });
+
+// Populate user info buttons with data from sessionStorage
+function populateUserInfoButtons() {
+    const teamBtn = document.getElementById('team-name-btn');
+    const initialBtn = document.getElementById('user-initial-btn');
+    
+    if (teamBtn) {
+        const userTeam = sessionStorage.getItem('user_team');
+        if (userTeam) {
+            teamBtn.textContent = userTeam.toUpperCase();
+        }
+    }
+    
+    if (initialBtn) {
+        const username = sessionStorage.getItem('username');
+        if (username && username.length > 0) {
+            initialBtn.textContent = username.charAt(0).toUpperCase();
+        }
+    }
+}
 
 // Setup page refresh/close protection
 function setupPageRefreshProtection() {
