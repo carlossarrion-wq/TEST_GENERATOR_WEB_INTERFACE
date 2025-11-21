@@ -265,7 +265,7 @@ class APIService {
      * @returns {Promise<Object>} Task result
      */
     async pollTaskCompletion(taskId, onProgress = null) {
-        const maxAttempts = 60; // 60 attempts * 2 seconds = 2 minutes max
+        const maxAttempts = 90; // 90 attempts * 2 seconds = 3 minutes max
         const pollInterval = 2000; // 2 seconds
         
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {

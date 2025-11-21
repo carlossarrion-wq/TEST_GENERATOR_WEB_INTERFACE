@@ -157,7 +157,7 @@ class CompleteLangChainAgent:
                 model_id=self.model_id,  # This is the inference profile
                 region_name=self.region,
                 model_kwargs={
-                    "max_tokens": 4000,
+                    "max_tokens": 16000,  # Increased for 1-20 test cases
                     "temperature": 0.1,
                     "top_p": 0.9
                 }

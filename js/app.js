@@ -30,6 +30,12 @@ function initializeApp() {
         }
     });
     
+    // Set up title field listener to update button state
+    const titleField = document.getElementById('plan-title');
+    if (titleField) {
+        titleField.addEventListener('input', updateGenerateButtonState);
+    }
+    
     // Initialize button state
     updateGenerateButtonState();
 }
@@ -149,9 +155,21 @@ async function refreshJiraModalForNewTeam() {
 // Update Generate Test Plan button state
 function updateGenerateButtonState() {
     const generateBtn = document.querySelector('.btn-primary');
-    if (generateBtn) {
-        // Keep button enabled always
-        generateBtn.disabled = false;
+    const titleField = document.getElementById('plan-title');
+    
+    if (generateBtn && titleField) {
+        const titleValue = titleField.value.trim();
+        
+        // Disable button if title is empty
+        if (!titleValue) {
+            generateBtn.disabled = true;
+            generateBtn.style.opacity = '0.5';
+            generateBtn.style.cursor = 'not-allowed';
+        } else {
+            generateBtn.disabled = false;
+            generateBtn.style.opacity = '1';
+            generateBtn.style.cursor = 'pointer';
+        }
         
         // Change button text after first generation
         if (testCases.length > 0) {
@@ -314,9 +332,9 @@ function expandConfigSection() {
 }
 
 // Generate test plan
-async function generateTestPlan() {
+async function generateTestPlan(event) {
     const title = document.getElementById('plan-title').value.trim();
-    const requirements = document.getElementById('requirements').value.trim();
+    let requirements = document.getElementById('requirements').value.trim();
     const coverage = document.getElementById('coverage').value;
     const minCases = parseInt(document.getElementById('min-cases').value);
     const maxCases = parseInt(document.getElementById('max-cases').value);
@@ -327,8 +345,21 @@ async function generateTestPlan() {
         return;
     }
     
-    if (!requirements) {
-        alert('Por favor, introduce los requisitos funcionales');
+    // Check if requirements are empty or contain generic placeholder text
+    const isRequirementsEmpty = !requirements || 
+                                requirements.trim() === '' ||
+                                requirements.toLowerCase().includes('no description provided') ||
+                                requirements.toLowerCase().includes('sin descripción') ||
+                                requirements.toLowerCase().includes('no description') ||
+                                requirements.toLowerCase().includes('n/a');
+    
+    // If no requirements or generic text, show blocking warning and return
+    if (isRequirementsEmpty) {
+        // Show warning notification with only "Aceptar" button (centered)
+        showWarningBlockingNotification(
+            'Requisitos funcionales requeridos',
+            'Debes proporcionar requisitos funcionales válidos antes de generar el plan de casos de prueba.\n\nPor favor, completa el campo de requisitos funcionales con información útil.'
+        );
         return;
     }
     
@@ -339,8 +370,8 @@ async function generateTestPlan() {
     // Show loading overlay
     showLoadingOverlay();
     
-    // Show loading state on button
-    const btn = event.target;
+    // Show loading state on button - use querySelector as fallback if event is not provided
+    const btn = event?.target || document.querySelector('.btn-primary');
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<div class="loading-spinner"></div> Generando plan de pruebas...';
@@ -869,10 +900,10 @@ function newTestPlan() {
     document.getElementById('requirements').value = '';
     document.getElementById('coverage').value = 80;
     document.getElementById('coverage-value').textContent = '80%';
-    document.getElementById('min-cases').value = 5;
-    document.getElementById('min-cases-value').textContent = '5';
-    document.getElementById('max-cases').value = 20;
-    document.getElementById('max-cases-value').textContent = '20';
+    document.getElementById('min-cases').value = 3;
+    document.getElementById('min-cases-value').textContent = '3';
+    document.getElementById('max-cases').value = 7;
+    document.getElementById('max-cases-value').textContent = '7';
     
     // Hide results sections
     document.getElementById('results-section').style.display = 'none';
@@ -1707,33 +1738,66 @@ function selectJiraIssue(issueKey) {
         item.classList.remove('selected');
     });
     
-    // Add selection to clicked item
-    event.target.closest('.jira-issue-item').classList.add('selected');
+    // Add selection to clicked item - use window.event for compatibility
+    const clickedElement = window.event ? window.event.target : null;
+    if (clickedElement) {
+        const issueItem = clickedElement.closest('.jira-issue-item');
+        if (issueItem) {
+            issueItem.classList.add('selected');
+        }
+    }
     
     // Store selected issue
     selectedJiraIssue = allJiraIssues.find(issue => issue.key === issueKey);
     
     // Enable import button
-    document.getElementById('import-jira-btn').disabled = false;
+    const importBtn = document.getElementById('import-jira-btn');
+    if (importBtn) {
+        importBtn.disabled = false;
+    }
 }
 
 // Import selected Jira issue
 function importSelectedJiraIssue() {
-    if (!selectedJiraIssue) {
-        alert('Por favor, selecciona primero una incidencia de Jira');
+    // Defensive check: ensure selectedJiraIssue exists and is not null
+    if (!selectedJiraIssue || selectedJiraIssue === null) {
+        alert('Por favor, selecciona primero una incidencia de Jira.\n\nDebes abrir el modal de importación y seleccionar una incidencia antes de hacer clic en "Importar Seleccionado".');
         return;
     }
     
+    // Defensive checks for issue properties - only access properties after null check
+    const issueKey = selectedJiraIssue.key || 'N/A';
+    const issueSummary = selectedJiraIssue.summary || 'Sin título';
+    const issueDescription = selectedJiraIssue.description || '';
+    
     // Populate form fields
-    document.getElementById('plan-title').value = `Test Plan: ${selectedJiraIssue.summary}`;
-    document.getElementById('plan-reference').value = selectedJiraIssue.key;
-    document.getElementById('requirements').value = selectedJiraIssue.description;
+    document.getElementById('plan-title').value = `Test Plan: ${issueSummary}`;
+    document.getElementById('plan-reference').value = issueKey;
+    
+    // If no description, use summary as fallback
+    if (issueDescription.trim()) {
+        document.getElementById('requirements').value = issueDescription;
+    } else {
+        document.getElementById('requirements').value = `Requisitos basados en: ${issueSummary}`;
+        
+        // Show info message
+        showInfoNotification(
+            'Incidencia sin descripción',
+            'La incidencia no tiene descripción. Se usará el título como base para los requisitos.'
+        );
+    }
+    
+    // Update button state after programmatic field population
+    updateGenerateButtonState();
     
     // Close modal
     closeJiraImportModal();
     
     // Show success message
-    alert(`Incidencia de Jira ${selectedJiraIssue.key} importada exitosamente`);
+    showSuccessNotification(
+        'Incidencia importada exitosamente',
+        `${selectedJiraIssue.key}: ${selectedJiraIssue.summary}`
+    );
     
     // Reset selection
     selectedJiraIssue = null;
@@ -1863,8 +1927,8 @@ function loadSelectedPlan() {
     document.getElementById('max-cases-value').textContent = plan.maxCases;
     
     // Update dual slider display
-    const minPercent = ((plan.minCases - 1) / (20 - 1)) * 100;
-    const maxPercent = ((plan.maxCases - 1) / (20 - 1)) * 100;
+    const minPercent = ((plan.minCases - 1) / (10 - 1)) * 100;
+    const maxPercent = ((plan.maxCases - 1) / (10 - 1)) * 100;
     const sliderRange = document.getElementById('slider-range');
     sliderRange.style.left = minPercent + '%';
     sliderRange.style.width = (maxPercent - minPercent) + '%';
@@ -2093,6 +2157,436 @@ function showSuccessNotificationWithCallback(title, subtitle, callback) {
     };
 }
 
+// Show info notification (elegant modal)
+function showInfoNotification(title, message) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'info-notification-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease-out;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        animation: slideIn 0.3s ease-out;
+        text-align: center;
+    `;
+    
+    modal.innerHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <div style="
+                width: 64px;
+                height: 64px;
+                background: #bee3f8;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1rem auto;
+            ">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#2b6cb0" style="width: 32px; height: 32px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h3 style="margin: 0 0 0.5rem 0; color: #2d3748; font-size: 1.5rem; font-weight: 600;">${title}</h3>
+            ${message ? `<p style="color: #4a5568; margin: 0; font-size: 1rem; line-height: 1.5;">${message}</p>` : ''}
+        </div>
+        <button id="info-ok-btn" style="
+            padding: 0.75rem 2rem;
+            border: none;
+            background: #3182ce;
+            color: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        ">Aceptar</button>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #info-ok-btn:hover {
+            background: #2c5282 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // OK button handler
+    const okBtn = document.getElementById('info-ok-btn');
+    okBtn.onclick = function() {
+        overlay.style.animation = 'fadeOut 0.2s ease-out';
+        modal.style.animation = 'slideOut 0.2s ease-out';
+        
+        // Add fadeOut animation
+        const fadeOutStyle = document.createElement('style');
+        fadeOutStyle.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+            @keyframes slideOut {
+                from {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+            }
+        `;
+        document.head.appendChild(fadeOutStyle);
+        
+        setTimeout(() => {
+            document.body.removeChild(overlay);
+            document.head.removeChild(style);
+            document.head.removeChild(fadeOutStyle);
+        }, 200);
+    };
+    
+    // Close on overlay click
+    overlay.onclick = function(e) {
+        if (e.target === overlay) {
+            okBtn.click();
+        }
+    };
+}
+
+// Show warning blocking notification (elegant modal with only Accept button - yellow warning style)
+function showWarningBlockingNotification(title, message) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'warning-blocking-notification-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease-out;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        animation: slideIn 0.3s ease-out;
+        text-align: center;
+    `;
+    
+    modal.innerHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <div style="
+                width: 64px;
+                height: 64px;
+                background: #fef3c7;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1rem auto;
+            ">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#f59e0b" style="width: 32px; height: 32px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+            </div>
+            <h3 style="margin: 0 0 0.5rem 0; color: #2d3748; font-size: 1.5rem; font-weight: 600;">${title}</h3>
+            ${message ? `<p style="color: #4a5568; margin: 0; font-size: 1rem; line-height: 1.5; white-space: pre-line;">${message}</p>` : ''}
+        </div>
+        <button id="warning-blocking-ok-btn" style="
+            padding: 0.75rem 2rem;
+            border: none;
+            background: #f59e0b;
+            color: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        ">Aceptar</button>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #warning-blocking-ok-btn:hover {
+            background: #d97706 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // OK button handler
+    const okBtn = document.getElementById('warning-blocking-ok-btn');
+    okBtn.onclick = function() {
+        overlay.style.animation = 'fadeOut 0.2s ease-out';
+        modal.style.animation = 'slideOut 0.2s ease-out';
+        
+        // Add fadeOut animation
+        const fadeOutStyle = document.createElement('style');
+        fadeOutStyle.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+            @keyframes slideOut {
+                from {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+            }
+        `;
+        document.head.appendChild(fadeOutStyle);
+        
+        setTimeout(() => {
+            document.body.removeChild(overlay);
+            document.head.removeChild(style);
+            document.head.removeChild(fadeOutStyle);
+        }, 200);
+    };
+    
+    // Close on overlay click
+    overlay.onclick = function(e) {
+        if (e.target === overlay) {
+            okBtn.click();
+        }
+    };
+}
+
+// Show warning notification (elegant modal with Accept/Cancel buttons)
+function showWarningNotification(title, message) {
+    return new Promise((resolve) => {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'warning-notification-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.2s ease-out;
+        `;
+        
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: slideIn 0.3s ease-out;
+            text-align: center;
+        `;
+        
+        modal.innerHTML = `
+            <div style="margin-bottom: 1.5rem;">
+                <div style="
+                    width: 64px;
+                    height: 64px;
+                    background: #fef3c7;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1rem auto;
+                ">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#f59e0b" style="width: 32px; height: 32px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
+                <h3 style="margin: 0 0 0.5rem 0; color: #2d3748; font-size: 1.5rem; font-weight: 600;">${title}</h3>
+                ${message ? `<p style="color: #4a5568; margin: 0; font-size: 1rem; line-height: 1.5; white-space: pre-line;">${message}</p>` : ''}
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button id="warning-cancel-btn" style="
+                    padding: 0.75rem 2rem;
+                    border: 1px solid #e2e8f0;
+                    background: white;
+                    color: #4a5568;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    flex: 1;
+                ">Cancelar</button>
+                <button id="warning-accept-btn" style="
+                    padding: 0.75rem 2rem;
+                    border: none;
+                    background: #f59e0b;
+                    color: white;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    flex: 1;
+                ">Aceptar</button>
+            </div>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            #warning-accept-btn:hover {
+                background: #d97706 !important;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+            #warning-cancel-btn:hover {
+                background: #f7fafc !important;
+                border-color: #cbd5e0 !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Function to close modal with animation
+        const closeModal = (accepted) => {
+            overlay.style.animation = 'fadeOut 0.2s ease-out';
+            modal.style.animation = 'slideOut 0.2s ease-out';
+            
+            // Add fadeOut animation
+            const fadeOutStyle = document.createElement('style');
+            fadeOutStyle.textContent = `
+                @keyframes fadeOut {
+                    from { opacity: 1; }
+                    to { opacity: 0; }
+                }
+                @keyframes slideOut {
+                    from {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: translateY(-20px);
+                    }
+                }
+            `;
+            document.head.appendChild(fadeOutStyle);
+            
+            setTimeout(() => {
+                document.body.removeChild(overlay);
+                document.head.removeChild(style);
+                document.head.removeChild(fadeOutStyle);
+                resolve(accepted);
+            }, 200);
+        };
+        
+        // Accept button handler
+        const acceptBtn = document.getElementById('warning-accept-btn');
+        acceptBtn.onclick = () => closeModal(true);
+        
+        // Cancel button handler
+        const cancelBtn = document.getElementById('warning-cancel-btn');
+        cancelBtn.onclick = () => closeModal(false);
+        
+        // Close on overlay click (treat as cancel)
+        overlay.onclick = function(e) {
+            if (e.target === overlay) {
+                closeModal(false);
+            }
+        };
+    });
+}
+
 // Show error notification (elegant modal)
 function showErrorNotification(title, message) {
     // Create modal overlay
@@ -2265,8 +2759,14 @@ function closeLoadPlanModal() {
 }
 
 // Clear chat conversation
-function clearChatConversation() {
-    if (!confirm('¿Estás seguro de que quieres limpiar la conversación del chat?\n\nEsto restablecerá la conversación a su estado inicial.')) {
+async function clearChatConversation() {
+    // Show warning notification and wait for user response
+    const userAccepted = await showWarningNotification(
+        'Limpiar conversación del chat',
+        '¿Estás seguro de que quieres limpiar la conversación del chat?\n\nEsto restablecerá la conversación a su estado inicial.'
+    );
+    
+    if (!userAccepted) {
         return;
     }
     

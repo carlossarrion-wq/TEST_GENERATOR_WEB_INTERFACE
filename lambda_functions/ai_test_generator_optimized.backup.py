@@ -20,25 +20,11 @@ except ImportError as e:
 
 bedrock_client = boto3.client('bedrock-runtime', region_name='eu-west-1')
 bedrock_agent = boto3.client('bedrock-agent-runtime', region_name='eu-west-1')
-lambda_client = boto3.client('lambda', region_name='eu-west-1')
 
 KNOWLEDGE_BASE_ID = os.environ.get('KNOWLEDGE_BASE_ID', 'VH6SRH9ZNO')
 MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'eu.anthropic.claude-haiku-4-5-20251001-v1:0')
-LAMBDA_FUNCTION_NAME = os.environ.get('AWS_LAMBDA_FUNCTION_NAME', 'test-plan-generator-ai')
 
 def lambda_handler(event, context):
-    # Handle async task processing (direct Lambda invocation)
-    if 'action' in event and event['action'] == 'process-async-task':
-        task_id = event.get('task_id')
-        data = event.get('data')
-        if task_id and data:
-            process_async_task(task_id, data)
-            return {'statusCode': 200, 'body': json.dumps({'message': 'Task processed'})}
-    
-    # Handle HTTP requests
-    if 'httpMethod' not in event:
-        return create_error_response(400, "Invalid event format", "InvalidEvent")
-    
     if event['httpMethod'] == 'OPTIONS':
         return handle_cors_preflight()
     
@@ -86,7 +72,7 @@ def lambda_handler(event, context):
         return create_error_response(500, "Internal server error", "InternalServerError")
 
 def start_async_generation(data):
-    """Start asynchronous test plan generation and return task_id immediately"""
+    """Start asynchronous test plan generation and return task_id"""
     try:
         # Generate unique task ID
         task_id = str(uuid.uuid4())
@@ -100,36 +86,46 @@ def start_async_generation(data):
                 VALUES (%s, %s, %s, %s)
             """, (task_id, 'processing', json.dumps(data), 'Generando plan de pruebas...'))
         
-        # Invoke Lambda asynchronously to process in background
-        # This allows us to return immediately without waiting for completion
+        # Start the actual generation process
         try:
-            payload = {
-                'task_id': task_id,
-                'action': 'process-async-task',
-                'data': data
-            }
+            result = generate_test_plan_with_langchain(data)
             
-            print(f"📤 Invoking Lambda asynchronously for task {task_id}")
-            lambda_client.invoke(
-                FunctionName=LAMBDA_FUNCTION_NAME,
-                InvocationType='Event',  # Asynchronous invocation
-                Payload=json.dumps(payload)
-            )
-            print(f"✅ Async invocation successful for task {task_id}")
+            # Parse the result
+            result_body = json.loads(result['body'])
             
-        except Exception as invoke_error:
-            print(f"❌ Failed to invoke async Lambda: {str(invoke_error)}")
-            # Update task status to failed
+            if result['statusCode'] == 201:
+                # Success - update task with completed status
+                with DatabaseConnection() as cursor:
+                    cursor.execute("""
+                        UPDATE async_tasks 
+                        SET status = %s, result_data = %s, message = %s, completed_at = NOW()
+                        WHERE task_id = %s
+                    """, ('completed', json.dumps(result_body), 'Plan de pruebas generado exitosamente', task_id))
+                print(f"✅ Task {task_id} completed successfully")
+            else:
+                # Error - update task with failed status
+                with DatabaseConnection() as cursor:
+                    cursor.execute("""
+                        UPDATE async_tasks 
+                        SET status = %s, error_message = %s, message = %s, completed_at = NOW()
+                        WHERE task_id = %s
+                    """, ('failed', json.dumps(result_body), result_body.get('error', 'Error al generar plan de pruebas'), task_id))
+                print(f"❌ Task {task_id} failed: {result_body.get('error')}")
+        
+        except Exception as gen_error:
+            # Handle generation errors
+            print(f"❌ Generation error for task {task_id}: {str(gen_error)}")
+            import traceback
+            traceback.print_exc()
+            
             with DatabaseConnection() as cursor:
                 cursor.execute("""
                     UPDATE async_tasks 
                     SET status = %s, error_message = %s, message = %s, completed_at = NOW()
                     WHERE task_id = %s
-                """, ('failed', str(invoke_error), f'Error al iniciar procesamiento: {str(invoke_error)}', task_id))
-            
-            return create_error_response(500, f"Failed to start async processing: {str(invoke_error)}", "AsyncInvokeError")
+                """, ('failed', str(gen_error), f'Error interno: {str(gen_error)}', task_id))
         
-        # Return task_id immediately (Lambda will process in background)
+        # Return task_id immediately
         return create_response(202, {
             'task_id': task_id,
             'status': 'processing',
@@ -142,61 +138,10 @@ def start_async_generation(data):
         traceback.print_exc()
         return create_error_response(500, f"Error starting async generation: {str(e)}", "AsyncStartError")
 
-def process_async_task(task_id, data):
-    """Process async task in background (called by async Lambda invocation)"""
-    try:
-        print(f"🔄 Processing async task {task_id}")
-        
-        # Update status to processing
-        with DatabaseConnection() as cursor:
-            cursor.execute("""
-                UPDATE async_tasks 
-                SET message = %s
-                WHERE task_id = %s
-            """, ('Generando casos de prueba con IA...', task_id))
-        
-        # Generate test plan
-        result = generate_test_plan_with_langchain(data)
-        
-        # Parse the result
-        result_body = json.loads(result['body'])
-        
-        if result['statusCode'] == 201:
-            # Success - update task with completed status
-            with DatabaseConnection() as cursor:
-                cursor.execute("""
-                    UPDATE async_tasks 
-                    SET status = %s, result_data = %s, message = %s, completed_at = NOW()
-                    WHERE task_id = %s
-                """, ('completed', json.dumps(result_body), 'Plan de pruebas generado exitosamente', task_id))
-            print(f"✅ Task {task_id} completed successfully")
-        else:
-            # Error - update task with failed status
-            with DatabaseConnection() as cursor:
-                cursor.execute("""
-                    UPDATE async_tasks 
-                    SET status = %s, error_message = %s, message = %s, completed_at = NOW()
-                    WHERE task_id = %s
-                """, ('failed', json.dumps(result_body), result_body.get('error', 'Error al generar plan de pruebas'), task_id))
-            print(f"❌ Task {task_id} failed: {result_body.get('error')}")
-    
-    except Exception as gen_error:
-        # Handle generation errors
-        print(f"❌ Generation error for task {task_id}: {str(gen_error)}")
-        import traceback
-        traceback.print_exc()
-        
-        with DatabaseConnection() as cursor:
-            cursor.execute("""
-                UPDATE async_tasks 
-                SET status = %s, error_message = %s, message = %s, completed_at = NOW()
-                WHERE task_id = %s
-            """, ('failed', str(gen_error), f'Error interno: {str(gen_error)}', task_id))
-
 def get_async_status(task_id):
     """Get the status of an async task from MySQL"""
     try:
-        print(f"📊 Checking status for task_id: {task_id}")
+        print(f"� Checking status for task_id: {task_id}")
         
         with DatabaseConnection() as cursor:
             cursor.execute("""
@@ -661,3 +606,4 @@ def extract_json_from_response(content):
                 pass
         
         print(f"Could not extract JSON from: {content[:200]}...")
+        return {"test_cases": []}
