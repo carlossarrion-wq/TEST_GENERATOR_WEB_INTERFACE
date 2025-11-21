@@ -605,7 +605,23 @@ def generate_chat_response_optimized(plan_context, chat_history, user_message):
             msg_content = msg['content'][:200]
             history_text += f"{msg_type}: {msg_content}\n"
         
-        system_prompt = "Eres un asistente experto en testing. Proporciona respuestas útiles y concisas sobre planes de prueba."
+        system_prompt = """Eres un asistente experto en testing. Proporciona respuestas útiles y concisas sobre planes de prueba.
+
+IMPORTANTE: Cuando realices acciones o cambios en los casos de prueba, SIEMPRE usa tiempo pasado para describir lo que has hecho, NO tiempo futuro.
+
+Ejemplos CORRECTOS:
+- "He generado un nuevo caso de prueba..."
+- "He modificado el caso TC-001..."
+- "He eliminado los casos redundantes..."
+- "He actualizado la descripción..."
+
+Ejemplos INCORRECTOS (NO uses estos):
+- "Voy a generar un nuevo caso..." ❌
+- "Voy a modificar el caso..." ❌
+- "Voy a eliminar..." ❌
+- "Voy a actualizar..." ❌
+
+Recuerda: Las acciones ya están completadas cuando respondes, así que usa tiempo pasado."""
         
         user_prompt = f"""Contexto del Plan:
 - Título: {plan_context['title']}
@@ -616,7 +632,7 @@ Conversación Reciente:
 
 Usuario: {user_message}
 
-Responde de forma útil y concisa."""
+Responde de forma útil y concisa, usando tiempo pasado para describir las acciones completadas."""
         
         response = bedrock_client.invoke_model(
             modelId=MODEL_ID,

@@ -15,7 +15,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Monitor for team changes to refresh Jira filters
     monitorTeamChanges();
+    
+    // Add page refresh/close protection
+    setupPageRefreshProtection();
 });
+
+// Setup page refresh/close protection
+function setupPageRefreshProtection() {
+    window.addEventListener('beforeunload', function(e) {
+        // Check if there are unsaved test cases
+        if (testCases && testCases.length > 0) {
+            // Trigger the browser's generic confirmation dialog
+            // Note: Modern browsers show their own message and ignore custom text for security reasons
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        }
+    });
+}
 
 // Initialize application
 function initializeApp() {
@@ -2811,21 +2828,24 @@ function showConfirmationDialog(response) {
         z-index: 10000;
     `;
     
-    // Create modal content
+    // Create modal content - wider than tall with max-height
     const modal = document.createElement('div');
     modal.style.cssText = `
         background: white;
         border-radius: 12px;
         padding: 2rem;
-        max-width: 500px;
+        max-width: 800px;
         width: 90%;
+        max-height: 80vh;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
     `;
     
-    // Build affected cases list
+    // Build affected cases list with scrollable container
     let affectedCasesList = '';
     if (response.affected_cases && response.affected_cases.length > 0) {
-        affectedCasesList = '<div style="margin: 1rem 0; padding: 1rem; background: #f7fafc; border-radius: 8px;">';
+        affectedCasesList = '<div style="margin: 1rem 0; padding: 1rem; background: #f7fafc; border-radius: 8px; max-height: 40vh; overflow-y: auto;">';
         affectedCasesList += '<strong style="color: #2d3748;">Casos afectados:</strong><ul style="margin: 0.5rem 0; padding-left: 1.5rem;">';
         response.affected_cases.forEach(caseId => {
             const testCase = testCases.find(tc => tc.id === caseId);
