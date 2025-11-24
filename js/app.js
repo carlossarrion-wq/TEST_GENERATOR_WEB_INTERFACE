@@ -1054,7 +1054,13 @@ function exportToCSV() {
     csv += 'ID;Name;Description;Priority;Preconditions;Expected Result;Test Data;Steps\n';
     
     testCases.forEach(tc => {
-        const steps = tc.steps.map(s => `Step ${s.number}: ${s.description}`).join(' | ');
+        // Format steps - handle both object format and string format
+        const steps = tc.steps.map(s => {
+            if (typeof s === 'object' && s.description) {
+                return s.description;
+            }
+            return String(s);
+        }).join(' | ');
         
         // Escape double quotes by doubling them, and wrap all fields in quotes
         const escapeField = (field) => {
