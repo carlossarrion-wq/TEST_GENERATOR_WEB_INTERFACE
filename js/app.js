@@ -978,7 +978,7 @@ function addChatMessage(message, type) {
 }
 
 // Save test plan
-function saveTestPlan() {
+async function saveTestPlan() {
     if (!currentTestPlan) {
         alert('No hay plan de pruebas para guardar');
         return;
@@ -1000,39 +1000,43 @@ function saveTestPlan() {
     currentTestPlan.chatHistory = chatHistory;
     currentTestPlan.lastModified = new Date().toISOString();
     
-    // Save to localStorage
+    // Get saved plans from localStorage
     const savedPlans = JSON.parse(localStorage.getItem('savedTestPlans') || '[]');
-    savedPlans.push(currentTestPlan);
-    localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
     
-    // Show success notification
-    showSuccessNotification(
-        'Plan de pruebas guardado',
-        '¡El plan se ha guardado exitosamente!'
-    );
+    // Check if a plan with the same ID already exists
+    const existingPlanIndex = savedPlans.findIndex(plan => plan.id === currentTestPlan.id);
     
-    // Update button state after successful save
-    const saveButton = document.getElementById('save-plan-btn');
-    const saveIcon = document.getElementById('save-plan-icon');
-    const saveText = document.getElementById('save-plan-text');
-    const saveDescription = document.getElementById('save-plan-description');
-    
-    if (saveButton && saveIcon && saveText && saveDescription) {
-        // Disable the button
-        saveButton.disabled = true;
-        saveButton.style.opacity = '0.7';
-        saveButton.style.cursor = 'not-allowed';
+    if (existingPlanIndex !== -1) {
+        // Plan exists - ask for confirmation to overwrite
+        const userConfirmed = await showWarningNotification(
+            'Plan ya existe',
+            `Ya existe un plan guardado con el ID "${currentTestPlan.id}".\n\n¿Deseas sobrescribir el plan existente?`
+        );
         
-        // Change button text
-        saveText.textContent = 'Plan Guardado';
+        if (!userConfirmed) {
+            // User cancelled - don't save
+            return;
+        }
         
-        // Change description text
-        saveDescription.textContent = 'Guardado correctamente';
+        // User confirmed - replace the existing plan
+        savedPlans[existingPlanIndex] = currentTestPlan;
+        localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
         
-        // Replace icon with checkmark
-        saveIcon.innerHTML = `
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        `;
+        // Show success notification
+        showSuccessNotification(
+            'Plan de pruebas actualizado',
+            '¡El plan se ha sobrescrito exitosamente!'
+        );
+    } else {
+        // Plan doesn't exist - create new entry
+        savedPlans.push(currentTestPlan);
+        localStorage.setItem('savedTestPlans', JSON.stringify(savedPlans));
+        
+        // Show success notification
+        showSuccessNotification(
+            'Plan de pruebas guardado',
+            '¡El plan se ha guardado exitosamente!'
+        );
     }
 }
 
