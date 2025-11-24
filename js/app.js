@@ -41,7 +41,58 @@ function populateUserInfoButtons() {
             initialBtn.textContent = username.charAt(0).toUpperCase();
         }
     }
+    
+    // Populate dropdown with user data
+    populateUserDropdown();
 }
+
+// Toggle user dropdown visibility
+function toggleUserDropdown() {
+    const dropdown = document.getElementById('user-dropdown');
+    
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+// Populate user dropdown with data from sessionStorage
+function populateUserDropdown() {
+    const username = sessionStorage.getItem('username') || 'Usuario';
+    const userEmail = sessionStorage.getItem('user_email') || 'usuario@example.com';
+    
+    // Update dropdown avatar
+    const dropdownAvatar = document.querySelector('.user-dropdown-avatar');
+    if (dropdownAvatar && username.length > 0) {
+        dropdownAvatar.textContent = username.charAt(0).toUpperCase();
+    }
+    
+    // Update dropdown name
+    const dropdownName = document.querySelector('.user-dropdown-name');
+    if (dropdownName) {
+        dropdownName.textContent = username;
+    }
+    
+    // Update dropdown email
+    const dropdownEmail = document.querySelector('.user-dropdown-email');
+    if (dropdownEmail) {
+        dropdownEmail.textContent = userEmail;
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('user-dropdown');
+    const initialBtn = document.getElementById('user-initial-btn');
+    
+    // Check if click is outside both the dropdown and the button
+    if (dropdown && initialBtn) {
+        if (!dropdown.contains(event.target) && !initialBtn.contains(event.target)) {
+            dropdown.style.display = 'none';
+        }
+    }
+});
 
 // Setup page refresh/close protection
 function setupPageRefreshProtection() {
@@ -614,6 +665,9 @@ function displayTestCases() {
     // Get the delete all button
     const deleteAllBtn = document.querySelector('#results-section .btn-secondary');
     
+    // Get the clear chat button
+    const clearChatBtn = document.querySelector('#chat-section .btn-secondary');
+    
     // Get or create empty state message container
     let emptyStateContainer = document.getElementById('empty-state-message');
     if (!emptyStateContainer) {
@@ -633,6 +687,11 @@ function displayTestCases() {
         // Hide delete all button
         if (deleteAllBtn) {
             deleteAllBtn.style.display = 'none';
+        }
+        
+        // Hide clear chat button when no test cases exist
+        if (clearChatBtn) {
+            clearChatBtn.style.display = 'none';
         }
         
         // Show empty state message
@@ -673,6 +732,11 @@ function displayTestCases() {
         } else {
             deleteAllBtn.style.display = 'none';
         }
+    }
+    
+    // Show clear chat button when test cases exist
+    if (clearChatBtn) {
+        clearChatBtn.style.display = 'flex';
     }
     
     // Priority translations
@@ -983,8 +1047,6 @@ function exportToCSV() {
     let csv = '\uFEFF';
     
     // Use semicolon as delimiter for better Excel compatibility (especially in European locales)
-    // Add explicit separator hint for Excel
-    csv += 'sep=;\n';
     csv += 'ID;Name;Description;Priority;Preconditions;Expected Result;Test Data;Steps\n';
     
     testCases.forEach(tc => {
